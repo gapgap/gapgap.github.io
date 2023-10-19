@@ -12,10 +12,12 @@
         $(".btn-full", ".float-btm").on("click", function(){
             if(isMobile) {
                 // window.open('https://m.tworld.co.kr/customer/svc-info/notice?category=directshop');
-                window.location.href = 'https://my-adot.onelink.me/MAbS/gp5w6dig';
+                console.log ("first btn1 if")
+                //window.location.href = 'https://my-adot.onelink.me/MAbS/gp5w6dig';
             }else{
                 // window.open('https://www.tworld.co.kr/web/support/notice/tdirect');
-                window.location.href = 'https://my-adot.onelink.me/MAbS/gp5w6dig';
+                console.log ("first btn2 else")
+                //window.location.href = 'https://my-adot.onelink.me/MAbS/gp5w6dig';
             }
 
         });
@@ -54,12 +56,14 @@
             let current = new Date();
             let day = current.getDate();
             let time = current.getHours();
-
+            console.log ("#alert_draw")
             if (day >= 6 && day <= 9) {
                 if (time <= 9 || time >= 16) {
-                    alert('DRAW 이벤트는 매일 오전 10시에 오픈됩니다.');
+                    console.log ("first if")
+                    //alert('DRAW 이벤트는 매일 오전 10시에 오픈됩니다.');
                 } else {
-                    window.location.href = 'https://my-adot.onelink.me/YSNe/giziuu8h';
+                    console.log ("first else")
+                    //window.location.href = 'https://my-adot.onelink.me/YSNe/giziuu8h';
                 }
             }
         });
