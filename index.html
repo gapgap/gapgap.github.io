@@ -56,9 +56,11 @@
             let current = new Date();
             let day = current.getDate();
             let time = current.getHours();
-            console.log ("#alert_draw " + current)
+            console.log ("#alert_draw:" + current +":")
             //if (day >= 6 && day <= 9) {
+            console.log ("#alert_draw day:" + day+":")
             if (day >= 1 && day <= 31) {
+                console.log ("#alert_draw time:" + time+":")
                 if (time <= 9 || time >= 16) {
                     console.log ("first if")
                     //alert('DRAW 이벤트는 매일 오전 10시에 오픈됩니다.');
