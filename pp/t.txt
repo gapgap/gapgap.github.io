@@ -1,1 +1,68 @@
-123
+Privacy Policy for HarnKan
+Effective Date: 2025-02-11
+Last Updated: 2025-02-11
+
+WhizkeyVodkha ("we", "us", or "our") operates the [Your App Name] mobile application (the "App"). We respect your privacy and are committed to protecting your personal information.
+
+This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our App. By using the App, you agree to the collection and use of information in accordance with this policy.
+
+1. Information We Collect
+We may collect the following types of data when you use the App:
+
+1.1. Information You Provide Directly
+Personal Information: If you contact us for support, we may collect your name, email address, and other contact details.
+User-Generated Content: Any data you enter into the app, such as preferences, notes, or interactions.
+1.2. Automatically Collected Information
+Device Information: We may collect device model, operating system version, unique device identifiers, and IP address.
+Usage Data: We track how you interact with the App, such as features used, pages viewed, and time spent.
+App Performance & Diagnostics: Error logs, crash reports, and other technical data may be collected to improve the App.
+1.3. Information from Third-Party Services
+If the App integrates with third-party services (such as Google APIs, advertising networks, or analytics providers), we may receive information about you from them.
+
+2. How We Use Your Information
+We use the collected data to:
+
+Provide and maintain the App.
+Improve user experience and enhance functionality.
+Personalize content and recommendations.
+Monitor usage, analyze trends, and fix bugs.
+Respond to customer inquiries and support requests.
+Ensure compliance with legal obligations.
+3. Data Sharing and Disclosure
+We do not sell, rent, or trade your personal data. However, we may share your information in the following cases:
+
+Service Providers: Trusted third-party vendors assisting with analytics, cloud storage, or app functionality.
+Legal Requirements: If required by law or to protect legal rights, we may disclose user data.
+Business Transfers: In case of a merger, acquisition, or sale, user information may be transferred.
+4. Third-Party Services
+Our App may contain third-party integrations, including but not limited to:
+
+Google Play Services
+Firebase Analytics
+Ad Networks (if applicable)
+These services have their own privacy policies, which you should review.
+
+5. Data Security
+We take reasonable steps to protect your information from unauthorized access, disclosure, or loss. However, no internet transmission or electronic storage is 100% secure, so we cannot guarantee absolute security.
+
+6. Children's Privacy
+Our App is not intended for children under the age of 13. We do not knowingly collect personal data from children. If you believe a child has provided us with personal information, please contact us, and we will take appropriate action.
+
+7. Your Rights & Choices
+You have the following rights regarding your data:
+
+Access & Correction: You can request access to your personal data and update it if needed.
+Data Deletion: You can request that we delete your personal data from our records.
+Opt-Out: You can disable certain data collection features in the App settings or device settings.
+To exercise your rights, please contact us at [Your Email Address].
+
+8. Changes to This Privacy Policy
+We may update this Privacy Policy periodically. Any changes will be reflected on this page with a new "Last Updated" date.
+
+We encourage you to review this policy regularly to stay informed about how we are protecting your information.
+
+9. Contact Us
+If you have any questions or concerns about this Privacy Policy, you may contact us at:
+
+WhizkeyVodkha
+gapgapus@gmail.com
