@@ -1,0 +1,18 @@
+{
+    "appclips": {
+        "apps": [
+            "T7KY8FMWKD.com.lapat.mytest101.Clip"
+        ]
+    },
+    "applinks": {
+        "apps": [],
+        "details": [
+            {
+                "paths": [
+                    "/9hkm/*"
+                ],
+                "appID": "T7KY8FMWKD.com.lapat.mytest101"
+            }
+        ]
+    }
+}
