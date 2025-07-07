@@ -1,0 +1,73 @@
+<html>
+<head>
+    <meta content="text/html;charset=utf-8" http-equiv="Content-Type" />
+    <meta content="utf-8" http-equiv="encoding" />
+</head>
+<body>
+    <div id="debugMessage" style="background:#fff8dc; padding:10px; border:1px solid #ccc; font-size:14px; font-family:sans-serif;"></div>
+    <iframe id="innerFrame" style="display:none" height="0" width="0" src=""></iframe>
+
+    <script type="text/javascript">
+var debugBox = document.getElementById("debugMessage");
+function show(msg) {
+    debugBox.innerText = msg;
+}
+
+var app_link = 'grab://open?af_deeplink=true&af_dp=grab%3A%2F%2Fopen&af_force_deeplink=true&campaign=SG19INTONBOARDING&is_retargeting=true&media_source=EDM';
+var store_link = 'market://details?id=com.grabtaxi.passenger&referrer=af_tranid%3D8p0xXGWlnJxxYUHqLGCxwg%26utm_source%3DEDM%26af_dp%3Dgrab%253A%252F%252Fopen%26utm_campaign%3DSG19INTONBOARDING%26c%3DSG19INTONBOARDING%26pid%3DEDM';
+var brand_store_link = 'null';
+var redirect_timeout = '1000';
+var redirect_timeout_int;
+var ifrm = document.getElementById("innerFrame");
+var stop_custom_redirection = false;
+
+function is_social() {
+    var ua = navigator.userAgent;
+    if (ua.indexOf('FB_IAB') !== -1 || ua.indexOf('Instagram') !== -1 || ua.indexOf('Line') !== -1) {
+        return true;
+    }
+    return false;
+}
+
+function redirect_to_store() {
+    show("Redirecting to store...");
+    if (brand_store_link !== 'null') {
+        window.location.href = brand_store_link;
+    } else {
+        window.location.href = store_link;
+    }
+}
+
+try {
+    redirect_timeout_int = parseInt(redirect_timeout);
+    if (isNaN(redirect_timeout_int)) redirect_timeout_int = 1000;
+} catch (e) {
+    redirect_timeout_int = 1000;
+}
+
+try {
+    if (!ifrm) {
+        show("❌ iframe not found. App link cannot be triggered.");
+    } else if (is_social()) {
+        show("📱 In-app browser detected. Delaying app launch...");
+        redirect_timeout_int = 2200;
+        setTimeout(function () {
+            show("➡️ Launching app via iframe (delayed)...");
+            ifrm.src = app_link;
+        }, 500);
+    } else {
+        show("➡️ Launching app via iframe...");
+        ifrm.src = app_link;
+    }
+} catch (e) {
+    show("⚠️ Error launching app. Redirecting to store...");
+    window.location.href = store_link;
+}
+
+setTimeout(function () {
+    show("⏱ App not opened. Redirecting to store...");
+    redirect_to_store();
+}, redirect_timeout_int);
+    </script>
+</body>
+</html>
