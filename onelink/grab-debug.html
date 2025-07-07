@@ -50,11 +50,11 @@ try {
         show("❌ iframe not found. App link cannot be triggered.");
     } else if (is_social()) {
         show("📱 In-app browser detected. Delaying app launch...");
-        redirect_timeout_int = 2200;
+        redirect_timeout_int = 10000;
         setTimeout(function () {
             show("➡️ Launching app via iframe (delayed)...");
             ifrm.src = app_link;
-        }, 500);
+        }, 5000);
     } else {
         show("➡️ Launching app via iframe...");
         ifrm.src = app_link;
