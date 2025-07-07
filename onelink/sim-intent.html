@@ -1,0 +1,26 @@
+<html><head>
+    <link rel="icon" href="https://cdn.appsflyer.com/af-statics/images/favicon.ico" type="image/x-icon" />
+    <link rel="apple-touch-icon" href="https://cdn.appsflyer.com/af-statics/images/favicon.png" type="image/png" />
+    <link rel="icon" href="https://cdn.appsflyer.com/af-statics/images/favicon.png" type="image/png" />
+</head>
+<body>
+    <script type="text/javascript">
+      // 3e8308c71544fc0e9cebe1017e037254
+      // fe9071b962c1a35b11cbf3b25fbc1b3b
+var full_package_name = 'com.appsflyer.onelinksimulator';
+var full_package_name_len = full_package_name.length;
+var index_of_last_dash = full_package_name.lastIndexOf('-');
+var package_name = index_of_last_dash < 0 ? full_package_name : full_package_name.slice(0,index_of_last_dash);
+var app_link = 'afbasicapp://mainactivity?af_ad=ads&af_channel=ch1&af_deeplink=true&af_dp=afbasicapp%3A%2F%2Fmainactivity&af_force_deeplink=true&af_xp=social&campaign=testc&deep_link_sub1=dp1&deep_link_value=testdp&media_source=testpid&shortlink=onurischeme&source_caller=ui';
+var store_link = 'market://details?id=com.appsflyer.onelinksimulator&referrer=af_tranid%3Dr6qPl0wp_dV8f1TFbjsgdA%26af_dp%3Dafbasicapp%253A%252F%252Fmainactivity%26deep_link_sub1%3Ddp1%26c%3Dtestc%26af_ad%3Dads%26pid%3Dtestpid%26deep_link_value%3Dtestdp%26af_channel%3Dch1';
+var referrer = 'af_tranid%3Dr6qPl0wp_dV8f1TFbjsgdA%26af_dp%3Dafbasicapp%253A%252F%252Fmainactivity%26deep_link_sub1%3Ddp1%26c%3Dtestc%26af_ad%3Dads%26pid%3Dtestpid%26deep_link_value%3Dtestdp%26af_channel%3Dch1';
+var store_link_encoded = encodeURI(store_link);
+var parts = app_link.split('://');
+var scheme = parts.shift();
+var data   = parts.join('://');
+var appsflyer_click_ts = Date.now();
+var intentUrl = 'intent://' + data + '#Intent;scheme=' + scheme + ';package=' + package_name + ';S.browser_fallback_url=' + store_link_encoded + ";S.market_referrer=" + referrer + ';l.appsflyer_click_ts=' + appsflyer_click_ts + ';end';
+location.href = intentUrl;
+    </script>
+</body>
+</html>
