@@ -122,6 +122,7 @@
       <button onclick="handleSubmit(true)">🔍 Test Only (show request)</button>
       <button onclick="handleSubmit(false)">🚀 Submit</button>
       <button onclick="clearLog()">🧹 Clear Log</button>
+      <button onclick="clearSettings()">🗑️ Clear Settings</button>
     </div>
 
     <div class="log" id="log"></div>
@@ -143,7 +144,11 @@
 
     function fmt(dt){const y=dt.getFullYear();const m=String(dt.getMonth()+1).padStart(2,'0');const d=String(dt.getDate()).padStart(2,'0');const hh=String(dt.getHours()).padStart(2,'0');const mm=String(dt.getMinutes()).padStart(2,'0');const ss=String(dt.getSeconds()).padStart(2,'0');return `${y}-${m}-${d} ${hh}:${mm}:${ss}`}
     function log(msg){logDiv.innerText = `[${fmt(new Date())}] ${msg}\n` + logDiv.innerText}
-    function clearLog(){logDiv.innerText=''}
+    $1
+    function clearSettings(){
+      try { localStorage.removeItem('apiScheduler_v2'); log('🗑️ Settings cleared'); }
+      catch(e){ log('⚠️ Failed to clear settings'); }
+    }
 
     function onModeChange(){
       const mode = document.getElementById('mode').value;
@@ -331,11 +336,11 @@
         token: document.getElementById('token').value,
         device_id: document.getElementById('device_id').value,
       };
-      sessionStorage.setItem('apiScheduler_v2', JSON.stringify(data));
+      localStorage.setItem('apiScheduler_v2', JSON.stringify(data));
     }
 
     function loadSession(){
-      const saved=sessionStorage.getItem('apiScheduler_v2');
+      const saved=localStorage.getItem('apiScheduler_v2');
       if(saved){ try{ const d=JSON.parse(saved);
         document.getElementById('mode').value=d.mode||'manual';
         document.getElementById('sendOption').value=d.sendOption||'now';
