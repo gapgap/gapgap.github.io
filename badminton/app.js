@@ -337,7 +337,7 @@ async function sendPostWithRetry(start, end, paymentMethod, amount, dryRun = fal
       if (!res.ok) {
         log(`❌ HTTP Error (status ${res.status})`);
       } else {
-        const body = await res.json(); // parse the real API response
+        const body = res.data; // parse the real API response
         if (body.code === 200) {
           log(`✅ Success (API ${body.code}) - ${body.msg}`);
           // Try to extract payment_uri from nested structures
