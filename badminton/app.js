@@ -328,30 +328,41 @@ async function sendPostWithRetry(start, end, paymentMethod, amount, dryRun = fal
   if (!(tokenInput.value && deviceInput.value)) { log("⛔ token/device_id required for real request"); return; }
 
   const totalAttempts = Math.max(1, parseInt(retries, 10) || 0) + 1;
+
   for (let attempt = 1; attempt <= totalAttempts; attempt++) {
     log(`➡️ Attempt ${attempt}/${totalAttempts} ...`);
+  
     try {
       const res = await doFetchOnce(start, end, paymentMethod, amount);
-      if (res.ok) {
-        log(`✅ Success (HTTP ${res.status})`);
-        // payment_uri in nested data
-        let paymentUri = null;
-        if (res?.data?.data?.data?.payment_uri) paymentUri = res.data.data.data.payment_uri;
-        else if (res?.data?.data?.payment_uri)  paymentUri = res.data.data.payment_uri;
-        else if (res?.data?.payment_uri)        paymentUri = res.data.payment_uri;
-
-        if (paymentUri) {
-          log(`🔗 Opening payment_uri in new tab: ${paymentUri}`);
-          window.open(paymentUri, "_blank");
-        } else {
-          log(`ℹ️ payment_uri not found in response`);
-        }
-        return;
+      if (!res.ok) {
+        log(`❌ HTTP Error (status ${res.status})`);
       } else {
-        log(`❌ Failed (HTTP ${res.status})${res.raw ? `\nResponse: ${res.raw}` : ""}`);
+        const body = await res.json(); // parse the real API response
+        if (body.code === 200) {
+          log(`✅ Success (API ${body.code}) - ${body.msg}`);
+          // Try to extract payment_uri from nested structures
+          let paymentUri =
+            body?.data?.data?.data?.payment_uri ??
+            body?.data?.data?.payment_uri ??
+            body?.data?.payment_uri ??
+            null;
+          if (paymentUri) {
+            log(`🔗 Opening payment_uri in new tab: ${paymentUri}`);
+            window.open(paymentUri, "_blank");
+          } else {
+            log(`ℹ️ payment_uri not found in response`);
+          }
+          return; // success, stop retry loop
+        } else {
+          log(`⚠️ Failed (API ${body.code}) - ${body.msg}`);
+        }
       }
-    } catch (e) { log(`❌ Error: ${e}`); }
-    if (attempt < totalAttempts) await new Promise(r => setTimeout(r, 500)); // 0.5s
+    } catch (e) {
+      log(`❌ Error: ${e}`);
+    }
+    if (attempt < totalAttempts) {
+      await new Promise(r => setTimeout(r, 500)); // 0.5s retry delay
+    }
   }
   log("🛑 All attempts exhausted");
 }
