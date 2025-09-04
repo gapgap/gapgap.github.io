@@ -327,7 +327,7 @@ async function sendPostWithRetry(start, end, paymentMethod, amount, dryRun = fal
   }
   if (!(tokenInput.value && deviceInput.value)) { log("⛔ token/device_id required for real request"); return; }
 
-  const totalAttempts = Math.max(1, parseInt(retries, 10) || 0) + 1;
+  const totalAttempts = Math.max(1, parseInt(retries, 10) || 0);
 
   for (let attempt = 1; attempt <= totalAttempts; attempt++) {
     log(`➡️ Attempt ${attempt}/${totalAttempts} ...`);
