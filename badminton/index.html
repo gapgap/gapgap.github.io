@@ -1,112 +1,163 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>API Booking Scheduler</title>
-<style>
-body { font-family: sans-serif; padding: 2rem; }
-input, button { font-size: 1rem; padding: 0.5rem; margin: 0.5rem 0; }
-label { display: block; margin-top: 1rem; }
-.log { font-family: monospace; background: #f4f4f4; padding: 1rem; margin-top: 1rem; }
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>API Booking Scheduler</title>
+  <style>
+    body { font-family: sans-serif; padding: 2rem; }
+    input, button, select { font-size: 1rem; padding: 0.5rem; margin: 0.5rem 0; }
+    label { display: block; margin-top: 1rem; }
+    .log { font-family: monospace; background: #f4f4f4; padding: 1rem; margin-top: 1rem; white-space: pre-wrap; }
+  </style>
 </head>
 <body>
-<h1>API Scheduler</h1>
+  <h1>API Scheduler</h1>
 
+  <label>
+    Test Run Time (HH:MM):
+    <input type="time" id="testTime">
+  </label>
 
-<label>
-Test Run Time (HH:MM):
-<input type="time" id="testTime">
-</label>
+  <label>
+    Start Mode:
+    <select id="startMode" onchange="toggleStartInputs()">
+      <option value="manual">Manual (for testing)</option>
+      <option value="friday">Friday Fixed Times</option>
+    </select>
+  </label>
 
+  <div id="manualTimeInputs">
+    <label>
+      Start Date/Time:
+      <input type="datetime-local" id="startDateTime">
+    </label>
+    <label>
+      End Date/Time:
+      <input type="datetime-local" id="endDateTime">
+    </label>
+  </div>
 
-<button onclick="scheduleRequests()">Schedule API Requests</button>
-<div class="log" id="log"></div>
+  <label>
+    Payment Method:
+    <select id="paymentMethod">
+      <option value="9">QR</option>
+      <option value="1">Point</option>
+    </select>
+  </label>
 
+  <label>
+    Amount:
+    <input type="number" id="amount" value="2" min="1">
+  </label>
 
-<script>
-const logDiv = document.getElementById('log');
+  <button onclick="scheduleRequests(true)">🔍 Test Only (show request)</button>
+  <button onclick="scheduleRequests(false)">🚀 Submit (real request)</button>
+  <div class="log" id="log"></div>
 
+  <script>
+    const logDiv = document.getElementById('log');
+    const manualTimeInputs = document.getElementById('manualTimeInputs');
 
-function log(message) {
-const now = new Date().toLocaleTimeString();
-logDiv.innerText += `[${now}] ${message}\n`;
-}
+    function log(message) {
+      const now = new Date().toLocaleTimeString();
+      logDiv.innerText += `[${now}] ${message}\n`;
+    }
 
+    function toggleStartInputs() {
+      const mode = document.getElementById('startMode').value;
+      manualTimeInputs.style.display = mode === 'manual' ? 'block' : 'none';
+    }
 
-function getUnixTimeNextFriday(hour, minute) {
-const now = new Date();
-const day = now.getDay();
-const daysUntilFriday = (5 + 7 - day) % 7 || 7;
-const nextFriday = new Date(now.getFullYear(), now.getMonth(), now.getDate() + daysUntilFriday, hour, minute, 0);
-return Math.floor(nextFriday.getTime() / 1000);
-}
+    function getUnixTimeNextFriday(hour, minute) {
+      const now = new Date();
+      const day = now.getDay();
+      const daysUntilFriday = (5 + 7 - day) % 7 || 7;
+      const nextFriday = new Date(now.getFullYear(), now.getMonth(), now.getDate() + daysUntilFriday, hour, minute, 0);
+      return Math.floor(nextFriday.getTime() / 1000);
+    }
 
+    function sendPostRequest(start, end, paymentMethod, amount, dryRun = false) {
+      const url = 'https://www.loga.app/privateapi/booking/create_appointment';
+      const params = new URLSearchParams({
+        token: '7ca52e96db35869acbde2a3462be6b75d52c84d6',
+        device_id: 'f95f4cfd-bc0d-41a3-ba83-896389e21c8b',
+        card_id: '6364',
+        slot_id: '12489',
+        contact: '0818855930',
+        remark: '',
+        start: start,
+        end: end,
+        payment_method: paymentMethod,
+        cuid: '',
+        amount: amount,
+        return_uri: 'https://client.loga.app/card/6364/shop/approve-order'
+      });
 
-function sendPostRequest(start, end) {
-const url = 'https://www.loga.app/privateapi/booking/create_appointment';
-const body = new URLSearchParams({
-token: '7ca52e96db35869acbde2a3462be6b75d52c84d6',
-device_id: 'f95f4cfd-bc0d-41a3-ba83-896389e21c8b',
-card_id: '6364',
-slot_id: '12489',
-contact: '0818855930',
-remark: '',
-start: start,
-end: end,
-payment_method: '9',
-cuid: '',
-amount: '2',
-return_uri: 'https://client.loga.app/card/6364/shop/approve-order'
-});
+      const fullUrl = `${url}?${params.toString()}`;
 
+      if (dryRun) {
+        log(`🧪 [Dry Run] POST URL: ${fullUrl}`);
+        return;
+      }
 
-fetch(url, {
-method: 'POST',
-headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-body: body
-})
-.then(response => response.json())
-.then(data => log(`Request success: ${JSON.stringify(data)}`))
-.catch(err => log(`Request failed: ${err}`));
-}
+      fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: params
+      })
+        .then(response => response.json())
+        .then(data => log(`✅ Request success: ${JSON.stringify(data)}`))
+        .catch(err => log(`❌ Request failed: ${err}`));
+    }
 
+    function scheduleRequests(dryRun = false) {
+      const testTimeValue = document.getElementById('testTime').value;
+      const [testHour, testMinute] = testTimeValue ? testTimeValue.split(':').map(Number) : [null, null];
+      const paymentMethod = document.getElementById('paymentMethod').value;
+      const amount = document.getElementById('amount').value;
 
-function scheduleRequests() {
-const testTimeValue = document.getElementById('testTime').value;
-const [testHour, testMinute] = testTimeValue ? testTimeValue.split(':').map(Number) : [null, null];
+      let startUnix, endUnix;
+      const mode = document.getElementById('startMode').value;
 
+      if (mode === 'manual') {
+        const startDT = document.getElementById('startDateTime').value;
+        const endDT = document.getElementById('endDateTime').value;
 
-// Schedule for midnight
-const now = new Date();
-const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0);
-const msUntilMidnight = midnight.getTime() - now.getTime();
+        if (!startDT || !endDT) {
+          log('⛔ Please provide both start and end date/time');
+          return;
+        }
 
+        startUnix = Math.floor(new Date(startDT).getTime() / 1000);
+        endUnix = Math.floor(new Date(endDT).getTime() / 1000);
+      } else {
+        const slot1 = { start: getUnixTimeNextFriday(19, 0), end: getUnixTimeNextFriday(20, 0) };
+        const slot2 = { start: getUnixTimeNextFriday(20, 0), end: getUnixTimeNextFriday(21, 0) };
+        log('📌 Using fixed Friday slots');
+        sendPostRequest(slot1.start, slot1.end, paymentMethod, amount, dryRun);
+        sendPostRequest(slot2.start, slot2.end, paymentMethod, amount, dryRun);
+        return;
+      }
 
-const startMidnight = getUnixTimeNextFriday(13, 0);
-const endMidnight = getUnixTimeNextFriday(14, 0);
+      const now = new Date();
+      const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0);
+      const msUntilMidnight = midnight.getTime() - now.getTime();
 
+      log(`Scheduled midnight request in ${msUntilMidnight / 1000}s`);
+      setTimeout(() => sendPostRequest(startUnix, endUnix, paymentMethod, amount, dryRun), msUntilMidnight);
 
-log(`Scheduled midnight request in ${msUntilMidnight / 1000}s`);
-setTimeout(() => sendPostRequest(startMidnight, endMidnight), msUntilMidnight);
+      if (testHour !== null && testMinute !== null) {
+        const testDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), testHour, testMinute, 0);
+        if (testDate < now) testDate.setDate(testDate.getDate() + 1);
+        const msUntilTest = testDate.getTime() - now.getTime();
 
+        log(`Scheduled test-time request at ${testHour}:${testMinute} in ${msUntilTest / 1000}s`);
+        setTimeout(() => sendPostRequest(startUnix, endUnix, paymentMethod, amount, dryRun), msUntilTest);
+      }
+    }
 
-// Schedule for custom test time
-if (testHour !== null && testMinute !== null) {
-const testDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), testHour, testMinute, 0);
-if (testDate < now) testDate.setDate(testDate.getDate() + 1);
-const msUntilTest = testDate.getTime() - now.getTime();
-
-
-const startTest = getUnixTimeNextFriday(13, 0);
-const endTest = getUnixTimeNextFriday(14, 0);
-
-
-log(`Scheduled test-time request at ${testHour}:${testMinute} in ${msUntilTest / 1000}s`);
-setTimeout(() => sendPostRequest(startTest, endTest), msUntilTest);
-}
-}
-</script>
+    toggleStartInputs();
+  </script>
 </body>
 </html>
