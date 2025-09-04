@@ -1,93 +1,205 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="th">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>API Booking Scheduler</title>
   <style>
-    body { font-family: sans-serif; padding: 2rem; }
-    input, button, select { font-size: 1rem; padding: 0.5rem; margin: 0.5rem 0; }
-    label { display: block; margin-top: 1rem; }
-    .log { font-family: monospace; background: #f4f4f4; padding: 1rem; margin-top: 1rem; white-space: pre-wrap; }
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; padding: 2rem; }
+    input, button, select { font-size: 1rem; padding: 0.5rem; margin: 0.4rem 0; }
+    label { display: block; margin-top: 0.6rem; }
+    .log { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: #f7f7f9; border: 1px solid #eee; padding: 1rem; margin-top: 1rem; white-space: pre-wrap; max-height: 320px; overflow-y: auto; }
+    .controls { margin-top: 0.6rem; display: flex; gap: .5rem; flex-wrap: wrap; }
+    .panel { background: #fafafa; border: 1px solid #eee; border-radius: 10px; padding: 1rem; margin-top: 1rem; }
+    .row { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: .8rem; }
+    .muted { color: #666; font-size: .95rem; }
+    .highlight { font-weight: 600; }
   </style>
 </head>
 <body>
   <h1>API Scheduler</h1>
 
-  <label>
-    Test Run Time (HH:MM):
-    <input type="time" id="testTime">
-  </label>
-
-  <label>
-    Start Mode:
-    <select id="startMode" onchange="toggleStartInputs()">
-      <option value="manual">Manual (for testing)</option>
-      <option value="friday">Friday Fixed Times</option>
-    </select>
-  </label>
-
-  <div id="manualTimeInputs">
+  <div class="row">
     <label>
-      Select Date:
-      <input type="date" id="manualDate">
+      Test Run Time (HH:MM):
+      <input type="time" id="testTime" />
     </label>
+
     <label>
-      Select Hour (Thailand time):
-      <select id="manualHour">
-        <option value="17">17:00</option>
-        <option value="18">18:00</option>
-        <option value="19">19:00</option>
-        <option value="20">20:00</option>
-        <option value="21">21:00</option>
+      Mode:
+      <select id="startMode" onchange="onModeChange()">
+        <option value="manual">Manual (testing)</option>
+        <option value="friday">Friday Fixed (demo schedule)</option>
+        <option value="real">Real – Run at Friday 00:00 (TH)</option>
       </select>
     </label>
   </div>
 
-  <label>
-    Payment Method:
-    <select id="paymentMethod">
-      <option value="9">QR</option>
-      <option value="1">Point</option>
-    </select>
-  </label>
+  <div id="manualTimeInputs" class="panel">
+    <div class="row">
+      <label>
+        Date:
+        <input type="date" id="manualDate" />
+      </label>
+      <label>
+        Hour (TH) [17–21]:
+        <select id="manualHour">
+          <option value="17">17:00</option>
+          <option value="18">18:00</option>
+          <option value="19">19:00</option>
+          <option value="20">20:00</option>
+          <option value="21">21:00</option>
+        </select>
+      </label>
+    </div>
+    <p class="muted">* End time = +1 hour, both converted to epoch (UTC) on send.</p>
+  </div>
 
-  <label>
-    Amount:
-    <input type="number" id="amount" value="2" min="1">
-  </label>
+  <div class="row">
+    <label>
+      Payment Method:
+      <select id="paymentMethod">
+        <option value="9">QR</option>
+        <option value="1">Point</option>
+      </select>
+    </label>
 
-  <button onclick="scheduleRequests(true)">🔍 Test Only (show request)</button>
-  <button onclick="scheduleRequests(false)">🚀 Submit (real request)</button>
+    <label>
+      Amount:
+      <input type="number" id="amount" value="2" min="1" />
+    </label>
+  </div>
+
+  <div id="realInfo" class="panel" style="display:none">
+    <div><span class="highlight">Next run (TH):</span> <span id="realRunTime">-</span></div>
+    <div><span class="highlight">Will book slots (TH):</span> <span id="realSlots">-</span></div>
+    <div class="muted">Countdown to run: <span id="countdown">--:--:--</span></div>
+  </div>
+
+  <div class="controls">
+    <button onclick="scheduleRequests(true)">🔍 Test Only (show request)</button>
+    <button onclick="scheduleRequests(false)">🚀 Submit (real request)</button>
+    <button onclick="clearLog()">🧹 Clear Log</button>
+  </div>
+
   <div class="log" id="log"></div>
 
   <script>
     const logDiv = document.getElementById('log');
     const manualTimeInputs = document.getElementById('manualTimeInputs');
+    const realInfo = document.getElementById('realInfo');
+    const realRunTime = document.getElementById('realRunTime');
+    const realSlots = document.getElementById('realSlots');
+    const countdownEl = document.getElementById('countdown');
 
-    function log(message) {
-      const now = new Date().toLocaleTimeString();
-      logDiv.innerText += `[${now}] ${message}\n`;
+    let countdownTimer = null;
+
+    function nowTH() {
+      // Returns Date object representing current time in Thailand (UTC+7) but using JS Date in local with offset math
+      return new Date(); // We'll add/subtract offsets explicitly where needed
     }
 
-    function toggleStartInputs() {
+    function fmt(dt) {
+      // Render local time string with YYYY-MM-DD HH:mm:ss
+      const y = dt.getFullYear();
+      const m = String(dt.getMonth()+1).padStart(2,'0');
+      const d = String(dt.getDate()).padStart(2,'0');
+      const hh = String(dt.getHours()).padStart(2,'0');
+      const mm = String(dt.getMinutes()).padStart(2,'0');
+      const ss = String(dt.getSeconds()).padStart(2,'0');
+      return `${y}-${m}-${d} ${hh}:${mm}:${ss}`;
+    }
+
+    function log(message) {
+      const t = new Date();
+      logDiv.innerText = `[${fmt(t)}] ${message}\n` + logDiv.innerText;
+    }
+
+    function clearLog() { logDiv.innerText = ''; }
+
+    function onModeChange() {
       const mode = document.getElementById('startMode').value;
       manualTimeInputs.style.display = mode === 'manual' ? 'block' : 'none';
+      realInfo.style.display = mode === 'real' ? 'block' : 'none';
+      if (mode === 'real') updateRealPanel(); else stopCountdown();
       saveSession();
     }
 
+    function stopCountdown(){ if (countdownTimer) { clearInterval(countdownTimer); countdownTimer = null; } }
+
+    function getNextFridayDateTHStart() {
+      // Compute Friday 00:00 (TH timezone) of the upcoming Friday (today-> if today is Fri but past midnight already, choose next week)
+      const now = new Date();
+      // We want next Friday 00:00 TH. Build a Date at local, then convert to TH epoch UTC when sending.
+      const day = now.getDay(); // 0 Sun .. 6 Sat
+      let daysUntilFriday = (5 - day);
+      if (daysUntilFriday < 0) daysUntilFriday += 7;
+      // If today is Friday but we already past 00:00, still choose today 00:00 if in the future? We want *upcoming* 00:00; if current time >= Fri 00:00, pick next week's Friday.
+      const candidate = new Date(now.getFullYear(), now.getMonth(), now.getDate() + daysUntilFriday, 0, 0, 0, 0);
+      if (now >= candidate) {
+        // move to next week
+        candidate.setDate(candidate.getDate() + 7);
+      }
+      return candidate; // JS Date at local timezone representing TH 00:00 if browser is in TH; we will treat it as TH clock display only
+    }
+
+    function toEpochThailand(dateStr, hour) {
+      // dateStr = YYYY-MM-DD in Thailand; hour is 0-23 in Thailand
+      const [year, month, day] = dateStr.split('-').map(Number);
+      // Convert TH time (UTC+7) to UTC epoch: subtract 7 hours
+      const utc = new Date(Date.UTC(year, month - 1, day, hour - 7, 0, 0));
+      return Math.floor(utc.getTime() / 1000);
+    }
+
+    function getUnixTimeFridaySlots() {
+      // For the same Friday as next run, compute slot epochs: 19-20 and 20-21 TH
+      const fri00 = getNextFridayDateTHStart();
+      const y = fri00.getFullYear();
+      const m = String(fri00.getMonth()+1).padStart(2,'0');
+      const d = String(fri00.getDate()).padStart(2,'0');
+      const dateStr = `${y}-${m}-${d}`;
+      return {
+        dateStr,
+        slot1: { start: toEpochThailand(dateStr, 19), end: toEpochThailand(dateStr, 20) },
+        slot2: { start: toEpochThailand(dateStr, 20), end: toEpochThailand(dateStr, 21) }
+      };
+    }
+
+    function getRealRunAtTH() {
+      // Next run instant at Friday 00:00 TH (i.e., at the start of that Friday)
+      return getNextFridayDateTHStart();
+    }
+
+    function startCountdown(target) {
+      stopCountdown();
+      const tick = () => {
+        const now = new Date();
+        let diff = Math.max(0, target.getTime() - now.getTime());
+        const s = Math.floor(diff/1000);
+        const hh = String(Math.floor(s/3600)).padStart(2,'0');
+        const mm = String(Math.floor((s%3600)/60)).padStart(2,'0');
+        const ss = String(s%60).padStart(2,'0');
+        countdownEl.textContent = `${hh}:${mm}:${ss}`;
+      };
+      tick();
+      countdownTimer = setInterval(tick, 1000);
+    }
+
+    function updateRealPanel() {
+      const runAt = getRealRunAtTH();
+      const { dateStr } = getUnixTimeFridaySlots();
+      realRunTime.textContent = fmt(runAt) + ' (TH)';
+      realSlots.textContent = `${dateStr} 19:00–20:00, ${dateStr} 20:00–21:00 (TH)`;
+      startCountdown(runAt);
+    }
+
     function getUnixTimeNextFriday(hour, minute) {
+      // Used by demo (friday) mode only
       const now = new Date();
       const day = now.getDay();
       const daysUntilFriday = (5 + 7 - day) % 7 || 7;
       const nextFriday = new Date(now.getFullYear(), now.getMonth(), now.getDate() + daysUntilFriday, hour, minute, 0);
       return Math.floor(nextFriday.getTime() / 1000);
-    }
-
-    function toEpochThailand(dateStr, hour) {
-      const [year, month, day] = dateStr.split('-').map(Number);
-      const utc = new Date(Date.UTC(year, month - 1, day, hour - 7, 0, 0)); // Convert Thai time to UTC
-      return Math.floor(utc.getTime() / 1000);
     }
 
     function sendPostRequest(start, end, paymentMethod, amount, dryRun = false) {
@@ -108,19 +220,13 @@
       });
 
       if (dryRun) {
-        log(`🧪 [Dry Run] Request Preview:`);
-        log(`POST ${url}`);
-        log(`Payload:`);
-        log(params.toString().replaceAll('&', '\n'));
+        log(`🧪 [Dry Run] POST ${url}`);
+        log(`Payload:\n${params.toString().replaceAll('&', '\n')}`);
         return;
       }
 
-      fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: params
-      })
-        .then(response => response.json())
+      fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: params })
+        .then(r => r.json())
         .then(data => log(`✅ Request success: ${JSON.stringify(data)}`))
         .catch(err => log(`❌ Request failed: ${err}`));
     }
@@ -128,53 +234,53 @@
     function scheduleRequests(dryRun = false) {
       saveSession();
 
-      const testTimeValue = document.getElementById('testTime').value;
-      const [testHour, testMinute] = testTimeValue ? testTimeValue.split(':').map(Number) : [null, null];
       const paymentMethod = document.getElementById('paymentMethod').value;
       const amount = document.getElementById('amount').value;
-
-      let startUnix, endUnix;
       const mode = document.getElementById('startMode').value;
 
       if (mode === 'manual') {
         const date = document.getElementById('manualDate').value;
         const hour = parseInt(document.getElementById('manualHour').value);
-
-        if (!date || isNaN(hour)) {
-          log('⛔ Please select both date and hour');
-          return;
-        }
-
-        startUnix = toEpochThailand(date, hour);
-        endUnix = toEpochThailand(date, hour + 1);
-
-        if (dryRun) {
-          sendPostRequest(startUnix, endUnix, paymentMethod, amount, true);
-          return;
-        }
-      } else {
-        const slot1 = { start: getUnixTimeNextFriday(19, 0), end: getUnixTimeNextFriday(20, 0) };
-        const slot2 = { start: getUnixTimeNextFriday(20, 0), end: getUnixTimeNextFriday(21, 0) };
-        log('📌 Using fixed Friday slots');
-        sendPostRequest(slot1.start, slot1.end, paymentMethod, amount, dryRun);
-        sendPostRequest(slot2.start, slot2.end, paymentMethod, amount, dryRun);
+        if (!date || isNaN(hour)) { log('⛔ Please select both date and hour'); return; }
+        const startUnix = toEpochThailand(date, hour);
+        const endUnix = toEpochThailand(date, hour + 1);
+        sendPostRequest(startUnix, endUnix, paymentMethod, amount, dryRun);
         return;
       }
 
+      if (mode === 'real') {
+        // Real mode: run exactly at Friday 00:00 TH, booking both slots (19–20 and 20–21) for that Friday.
+        const runAt = getRealRunAtTH();
+        const { slot1, slot2, dateStr } = getUnixTimeFridaySlots();
+        updateRealPanel();
+        const delay = Math.max(0, runAt.getTime() - Date.now());
+        log(`⏳ Scheduled REAL run at ${fmt(runAt)} (TH) for slots ${dateStr} 19:00–21:00`);
+        setTimeout(() => {
+          log('🚀 REAL run triggered – sending both slot requests');
+          // Fire both requests in parallel
+          sendPostRequest(slot1.start, slot1.end, paymentMethod, amount, dryRun);
+          sendPostRequest(slot2.start, slot2.end, paymentMethod, amount, dryRun);
+        }, delay);
+        return;
+      }
+
+      // Demo friday mode (legacy demo): midnight + test time schedule
+      const testTimeValue = document.getElementById('testTime').value;
+      const [testHour, testMinute] = testTimeValue ? testTimeValue.split(':').map(Number) : [null, null];
+      const slot1 = { start: getUnixTimeNextFriday(19, 0), end: getUnixTimeNextFriday(20, 0) };
+      const slot2 = { start: getUnixTimeNextFriday(20, 0), end: getUnixTimeNextFriday(21, 0) };
+      log('📌 Using demo Friday schedule');
       const now = new Date();
       const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0);
       const msUntilMidnight = midnight.getTime() - now.getTime();
-
-      log(`Scheduled midnight request in ${msUntilMidnight / 1000}s`);
-      setTimeout(() => sendPostRequest(startUnix, endUnix, paymentMethod, amount), msUntilMidnight);
-
+      log(`⏳ Scheduled slot1 at midnight in ${Math.floor(msUntilMidnight/1000)}s`);
+      setTimeout(() => sendPostRequest(slot1.start, slot1.end, paymentMethod, amount, dryRun), msUntilMidnight);
       if (testHour !== null && testMinute !== null) {
         const testDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), testHour, testMinute, 0);
         if (testDate < now) testDate.setDate(testDate.getDate() + 1);
         const msUntilTest = testDate.getTime() - now.getTime();
-
-        log(`Scheduled test-time request at ${testHour}:${testMinute} in ${msUntilTest / 1000}s`);
-        setTimeout(() => sendPostRequest(startUnix, endUnix, paymentMethod, amount, dryRun), msUntilTest);
+        log(`⏳ Scheduled slot2 at ${testHour}:${testMinute} in ${Math.floor(msUntilTest/1000)}s`);
+        setTimeout(() => sendPostRequest(slot2.start, slot2.end, paymentMethod, amount, dryRun), msUntilTest);
       }
     }
 
@@ -201,7 +307,7 @@
         document.getElementById('manualHour').value = data.manualHour || '17';
         document.getElementById('paymentMethod').value = data.paymentMethod || '9';
         document.getElementById('amount').value = data.amount || '2';
-        toggleStartInputs();
+        onModeChange();
         log('📦 Loaded previous session data');
       } catch (e) {
         log('⚠️ Failed to load session data');
