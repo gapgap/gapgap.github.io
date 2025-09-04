@@ -29,12 +29,18 @@
 
   <div id="manualTimeInputs">
     <label>
-      Start Date/Time:
-      <input type="datetime-local" id="startDateTime">
+      Select Date:
+      <input type="date" id="manualDate">
     </label>
     <label>
-      End Date/Time:
-      <input type="datetime-local" id="endDateTime">
+      Select Hour (Thailand time):
+      <select id="manualHour">
+        <option value="17">17:00</option>
+        <option value="18">18:00</option>
+        <option value="19">19:00</option>
+        <option value="20">20:00</option>
+        <option value="21">21:00</option>
+      </select>
     </label>
   </div>
 
@@ -67,6 +73,7 @@
     function toggleStartInputs() {
       const mode = document.getElementById('startMode').value;
       manualTimeInputs.style.display = mode === 'manual' ? 'block' : 'none';
+      saveSession();
     }
 
     function getUnixTimeNextFriday(hour, minute) {
@@ -75,6 +82,12 @@
       const daysUntilFriday = (5 + 7 - day) % 7 || 7;
       const nextFriday = new Date(now.getFullYear(), now.getMonth(), now.getDate() + daysUntilFriday, hour, minute, 0);
       return Math.floor(nextFriday.getTime() / 1000);
+    }
+
+    function toEpochThailand(dateStr, hour) {
+      const [year, month, day] = dateStr.split('-').map(Number);
+      const utc = new Date(Date.UTC(year, month - 1, day, hour - 7, 0, 0)); // Convert Thai time to UTC
+      return Math.floor(utc.getTime() / 1000);
     }
 
     function sendPostRequest(start, end, paymentMethod, amount, dryRun = false) {
@@ -113,6 +126,8 @@
     }
 
     function scheduleRequests(dryRun = false) {
+      saveSession();
+
       const testTimeValue = document.getElementById('testTime').value;
       const [testHour, testMinute] = testTimeValue ? testTimeValue.split(':').map(Number) : [null, null];
       const paymentMethod = document.getElementById('paymentMethod').value;
@@ -122,16 +137,16 @@
       const mode = document.getElementById('startMode').value;
 
       if (mode === 'manual') {
-        const startDT = document.getElementById('startDateTime').value;
-        const endDT = document.getElementById('endDateTime').value;
+        const date = document.getElementById('manualDate').value;
+        const hour = parseInt(document.getElementById('manualHour').value);
 
-        if (!startDT || !endDT) {
-          log('⛔ Please provide both start and end date/time');
+        if (!date || isNaN(hour)) {
+          log('⛔ Please select both date and hour');
           return;
         }
 
-        startUnix = Math.floor(new Date(startDT).getTime() / 1000);
-        endUnix = Math.floor(new Date(endDT).getTime() / 1000);
+        startUnix = toEpochThailand(date, hour);
+        endUnix = toEpochThailand(date, hour + 1);
 
         if (dryRun) {
           sendPostRequest(startUnix, endUnix, paymentMethod, amount, true);
@@ -159,11 +174,41 @@
         const msUntilTest = testDate.getTime() - now.getTime();
 
         log(`Scheduled test-time request at ${testHour}:${testMinute} in ${msUntilTest / 1000}s`);
-        setTimeout(() => sendPostRequest(startUnix, endUnix, paymentMethod, amount), msUntilTest);
+        setTimeout(() => sendPostRequest(startUnix, endUnix, paymentMethod, amount, dryRun), msUntilTest);
       }
     }
 
-    toggleStartInputs();
+    function saveSession() {
+      const data = {
+        testTime: document.getElementById('testTime').value,
+        startMode: document.getElementById('startMode').value,
+        manualDate: document.getElementById('manualDate').value,
+        manualHour: document.getElementById('manualHour').value,
+        paymentMethod: document.getElementById('paymentMethod').value,
+        amount: document.getElementById('amount').value
+      };
+      sessionStorage.setItem('apiSchedulerData', JSON.stringify(data));
+    }
+
+    function loadSession() {
+      const saved = sessionStorage.getItem('apiSchedulerData');
+      if (!saved) return;
+      try {
+        const data = JSON.parse(saved);
+        document.getElementById('testTime').value = data.testTime || '';
+        document.getElementById('startMode').value = data.startMode || 'manual';
+        document.getElementById('manualDate').value = data.manualDate || '';
+        document.getElementById('manualHour').value = data.manualHour || '17';
+        document.getElementById('paymentMethod').value = data.paymentMethod || '9';
+        document.getElementById('amount').value = data.amount || '2';
+        toggleStartInputs();
+        log('📦 Loaded previous session data');
+      } catch (e) {
+        log('⚠️ Failed to load session data');
+      }
+    }
+
+    loadSession();
   </script>
 </body>
 </html>
