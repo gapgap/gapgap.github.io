@@ -19,8 +19,12 @@
     .controls { margin-top: .8rem; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: var(--gap); }
     @media (max-width: 600px) { .controls { grid-template-columns: 1fr; } }
     .log { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: #f7f7f9; border: 1px solid #eee; padding: 1rem; margin-top: 1rem; white-space: pre-wrap; max-height: 40vh; overflow-y: auto; border-radius: 12px; }
+<<<<<<< HEAD
     .inline-actions { display: flex; gap: .5rem; flex-wrap: wrap; align-items: center; }
     .inline-actions input[type="file"] { width: auto; }
+=======
+    .inline-actions { display: flex; gap: .5rem; flex-wrap: wrap; }
+>>>>>>> 682dd74d8ffe48696c9aef634e61fe8196d19821
   </style>
 </head>
 <body>
@@ -31,7 +35,11 @@
     <div class="row">
       <label>
         Mode (2 only)
+<<<<<<< HEAD
         <select id="mode">
+=======
+        <select id="mode" onchange="onModeChange()">
+>>>>>>> 682dd74d8ffe48696c9aef634e61fe8196d19821
           <option value="manual">Manual testing</option>
           <option value="friday">Friday booking (next week)</option>
         </select>
@@ -39,7 +47,11 @@
 
       <label>
         Send option
+<<<<<<< HEAD
         <select id="sendOption">
+=======
+        <select id="sendOption" onchange="onSendOptionChange()">
+>>>>>>> 682dd74d8ffe48696c9aef634e61fe8196d19821
           <option value="now">Send now</option>
           <option value="schedule">Schedule</option>
         </select>
@@ -77,7 +89,11 @@
       <div class="row">
         <label>
           Credential profile
+<<<<<<< HEAD
           <select id="profileSelect"></select>
+=======
+          <select id="profileSelect" onchange="onProfileSelectChange()"></select>
+>>>>>>> 682dd74d8ffe48696c9aef634e61fe8196d19821
         </label>
         <label>
           Profile name
@@ -95,6 +111,7 @@
         </label>
       </div>
       <div class="inline-actions">
+<<<<<<< HEAD
         <button id="btnSaveProfile">💾 Save / Update Profile</button>
         <button id="btnNewProfile">🆕 New Profile</button>
         <button id="btnDeleteProfile">🗑️ Delete Profile</button>
@@ -104,6 +121,13 @@
         </label>
       </div>
       <p class="muted">Profiles are kept in this browser (localStorage). Use Export/Import to move between devices.</p>
+=======
+        <button onclick="saveOrUpdateProfile()">💾 Save / Update Profile</button>
+        <button onclick="newProfile()">🆕 New Profile</button>
+        <button onclick="deleteProfile()">🗑️ Delete Profile</button>
+      </div>
+      <p class="muted">Tip: Create multiple token/device pairs and switch quickly via the dropdown.</p>
+>>>>>>> 682dd74d8ffe48696c9aef634e61fe8196d19821
     </div>
 
     <!-- Friday booking info -->
@@ -148,14 +172,459 @@
 
     <!-- Actions -->
     <div class="controls">
+<<<<<<< HEAD
       <button id="btnTest">🔍 Test Only (show request)</button>
       <button id="btnSubmit">🚀 Submit</button>
       <button id="btnClearLog">🧹 Clear Log</button>
+=======
+      <button onclick="handleSubmit(true)">🔍 Test Only (show request)</button>
+      <button onclick="handleSubmit(false)">🚀 Submit</button>
+      <button onclick="clearLog()">🧹 Clear Log</button>
+>>>>>>> 682dd74d8ffe48696c9aef634e61fe8196d19821
     </div>
 
     <div class="log" id="log"></div>
   </div>
 
+<<<<<<< HEAD
   <script src="./app.js"></script>
+=======
+  <script>
+    /* ========== Elements ========== */
+    const logDiv = document.getElementById('log');
+    const manualPanel = document.getElementById('manualPanel');
+    const friPanel = document.getElementById('friPanel');
+    const sendAtWrap = document.getElementById('sendAtWrap');
+    const sendAtInput = document.getElementById('sendAt');
+    const nextSendEl = document.getElementById('nextSend');
+    const countdownEl = document.getElementById('countdown');
+    const friDateEl = document.getElementById('friDate');
+    const friSlotsEl = document.getElementById('friSlots');
+    const scheduleInfo = document.getElementById('scheduleInfo');
+
+    const profileSelect = document.getElementById('profileSelect');
+    const profileName = document.getElementById('profileName');
+    const tokenInput = document.getElementById('token');
+    const deviceInput = document.getElementById('device_id');
+
+    let countdownTimer = null;
+
+    /* ========== Utils ========== */
+    function fmt(dt){const y=dt.getFullYear();const m=String(dt.getMonth()+1).padStart(2,'0');const d=String(dt.getDate()).padStart(2,'0');const hh=String(dt.getHours()).padStart(2,'0');const mm=String(dt.getMinutes()).padStart(2,'0');const ss=String(dt.getSeconds()).padStart(2,'0');return `${y}-${m}-${d} ${hh}:${mm}:${ss}`}
+    function log(msg){logDiv.innerText = `[${fmt(new Date())}] ${msg}\n` + logDiv.innerText}
+    function clearLog(){logDiv.innerText=''}
+
+    /* ========== Modes & Send Option ========== */
+    function onModeChange(){
+      const mode = document.getElementById('mode').value;
+      manualPanel.style.display = mode==='manual' ? 'block' : 'none';
+      friPanel.style.display = mode==='friday' ? 'block' : 'none';
+      updateFridayInfo();
+      saveSettings();
+    }
+
+    function onSendOptionChange(){
+      const opt = document.getElementById('sendOption').value;
+      sendAtWrap.style.display = opt==='schedule' ? 'block' : 'none';
+      scheduleInfo.style.display = 'none';
+      stopCountdown();
+      saveSettings();
+    }
+
+    function stopCountdown(){ if(countdownTimer){ clearInterval(countdownTimer); countdownTimer=null; } }
+    function startCountdown(target){
+      stopCountdown();
+      const tick=()=>{const now=new Date();let diff=Math.max(0,target-now);const s=Math.floor(diff/1000);const hh=String(Math.floor(s/3600)).padStart(2,'0');const mm=String(Math.floor((s%3600)/60)).padStart(2,'0');const ss=String(s%60).padStart(2,'0');countdownEl.textContent=`${hh}:${mm}:${ss}`};
+      tick(); countdownTimer=setInterval(tick,1000);
+    }
+
+    /* ========== Time helpers (TH -> epoch) ========== */
+    function toEpochThailand(dateStr, hour){
+      const [y,m,d]=dateStr.split('-').map(Number);
+      const utc=new Date(Date.UTC(y,m-1,d,hour-7,0,0));
+      return Math.floor(utc.getTime()/1000);
+    }
+
+    function getNextWeekFriday(){
+      const now=new Date();
+      const day=now.getDay(); // Sun=0..Sat=6
+      const daysUntilThisFri=(5 - day + 7) % 7;
+      const thisFri=new Date(now.getFullYear(), now.getMonth(), now.getDate()+daysUntilThisFri, 0,0,0,0);
+      const nextWeekFri=new Date(thisFri.getTime()+7*24*3600*1000);
+      return nextWeekFri;
+    }
+
+    function updateFridayInfo(){
+      if(document.getElementById('mode').value!=='friday') return;
+      const nextFri=getNextWeekFriday();
+      const y=nextFri.getFullYear();const m=String(nextFri.getMonth()+1).padStart(2,'0');const d=String(nextFri.getDate()).padStart(2,'0');
+      const dateStr=`${y}-${m}-${d}`;
+      friDateEl.textContent = `${dateStr} (TH)`;
+      friSlotsEl.textContent = `${dateStr} 19:00–20:00, ${dateStr} 20:00–21:00 (TH)`;
+    }
+
+    /* ========== Persistence (Settings) ========== */
+    function saveSettings(){
+      const data={
+        mode: document.getElementById('mode').value,
+        sendOption: document.getElementById('sendOption').value,
+        sendAt: sendAtInput.value,
+        manualDate: document.getElementById('manualDate').value,
+        manualHour: document.getElementById('manualHour').value,
+        paymentMethod: document.getElementById('paymentMethod').value,
+        amount: document.getElementById('amount').value,
+        retryCount: document.getElementById('retryCount').value,
+        selectedProfileId: profileSelect.value || '',
+      };
+      localStorage.setItem('apiScheduler_v2', JSON.stringify(data));
+    }
+
+    function loadSettings(){
+      const saved=localStorage.getItem('apiScheduler_v2');
+      if(saved){ try{ const d=JSON.parse(saved);
+        document.getElementById('mode').value=d.mode||'manual';
+        document.getElementById('sendOption').value=d.sendOption||'now';
+        sendAtInput.value=d.sendAt||'';
+        document.getElementById('manualDate').value=d.manualDate||'';
+        document.getElementById('manualHour').value=d.manualHour||'17';
+        document.getElementById('paymentMethod').value=d.paymentMethod||'9';
+        document.getElementById('amount').value=d.amount||'2';
+        document.getElementById('retryCount').value=d.retryCount||'5';
+      }catch(e){ log('⚠️ Failed to load settings'); }}
+      onModeChange(); onSendOptionChange(); updateFridayInfo();
+      // autosave on change
+      const ids=['mode','sendOption','sendAt','manualDate','manualHour','paymentMethod','amount','retryCount'];
+      ids.forEach(id=>{
+        const el=document.getElementById(id);
+        if(!el) return;
+        const ev = (el.tagName==='INPUT' && (el.type==='text' || el.type==='password' || el.type==='datetime-local')) ? 'input' : 'change';
+        el.addEventListener(ev, saveSettings);
+      });
+    }
+
+    /* ========== Credential Profiles CRUD ========== */
+    const PROFILES_KEY = 'apiScheduler_profiles_v2';
+const LEGACY_PROFILES_KEY = 'apiScheduler_profiles_v1';
+
+    function loadProfiles(){
+      // Try new schema first
+      const raw = localStorage.getItem(PROFILES_KEY);
+      if(raw){ try{ const list = JSON.parse(raw); return Array.isArray(list)?list:[]; } catch(_){} }
+      // Migrate legacy if found
+      const legacy = localStorage.getItem(LEGACY_PROFILES_KEY);
+      if(legacy){
+        try{
+          const old = JSON.parse(legacy);
+          const migrated = (Array.isArray(old)?old:[]).map(p=>({
+            id: p.id || ('p-' + Math.random().toString(36).slice(2,10)),
+            name: p.name || '',
+            token: p.token || '',
+            device_id: p.device_id || '',
+            // defaults for new fields
+            paymentMethod: '9', amount: '2', retryCount: '5',
+            mode: 'manual', sendOption: 'now', manualDate: '', manualHour: '17', sendAt: ''
+          }));
+          localStorage.setItem(PROFILES_KEY, JSON.stringify(migrated));
+          return migrated;
+        }catch(_){}
+      }
+      return [];
+    } catch(_){} }
+      return Array.isArray(list) ? list : [];
+    }
+
+    function saveProfiles(list){ localStorage.setItem(PROFILES_KEY, JSON.stringify(list)); }
+
+    function renderProfileDropdown(selectedId){
+      const list = loadProfiles();
+      profileSelect.innerHTML = '';
+      const optNone = document.createElement('option');
+      optNone.value = '';
+      optNone.textContent = '— Select profile —';
+      profileSelect.appendChild(optNone);
+      list.forEach(p=>{
+        const opt = document.createElement('option');
+        opt.value = p.id;
+        opt.textContent = p.name || `(unnamed) ${p.id.slice(-4)}`;
+        profileSelect.appendChild(opt);
+      });
+      if(selectedId){ profileSelect.value = selectedId; }
+    }
+
+    function onProfileSelectChange(){
+      const id = profileSelect.value;
+      const list = loadProfiles();
+      const p = list.find(x=>x.id===id);
+      if(!p){ tokenInput.value=''; deviceInput.value=''; profileName.value=''; saveSettings(); return; }
+      // Fill credentials
+      tokenInput.value = p.token || '';
+      deviceInput.value = p.device_id || '';
+      profileName.value = p.name || '';
+      // Fill all configurable fields
+      document.getElementById('paymentMethod').value = p.paymentMethod || '9';
+      document.getElementById('amount').value = p.amount || '2';
+      document.getElementById('retryCount').value = p.retryCount || '5';
+      document.getElementById('mode').value = p.mode || 'manual';
+      document.getElementById('sendOption').value = p.sendOption || 'now';
+      document.getElementById('manualDate').value = p.manualDate || '';
+      document.getElementById('manualHour').value = p.manualHour || '17';
+      sendAtInput.value = p.sendAt || '';
+      // Apply UI dependent states
+      onModeChange();
+      onSendOptionChange();
+      updateFridayInfo();
+      // Persist selected profile id
+      const settingsRaw = localStorage.getItem('apiScheduler_v2');
+      let settings = {}; try{ settings = JSON.parse(settingsRaw)||{} }catch(_){ settings={} }
+      settings.selectedProfileId = id;
+      localStorage.setItem('apiScheduler_v2', JSON.stringify(settings));
+      log(`👤 Loaded profile: ${p.name || id}`);
+    }
+      tokenInput.value = p.token || '';
+      deviceInput.value = p.device_id || '';
+      profileName.value = p.name || '';
+      saveSettings();
+    }
+
+    function uuid(){ return 'p-' + Math.random().toString(36).slice(2,10) + Date.now().toString(36).slice(-4); }
+
+    function newProfile(){
+      profileSelect.value = '';
+      profileName.value = '';
+      tokenInput.value = '';
+      deviceInput.value = '';
+      saveSettings();
+    }
+
+    function saveOrUpdateProfile(){
+      const name = (profileName.value || '').trim();
+      const token = tokenInput.value || '';
+      const device_id = deviceInput.value || '';
+      if(!token || !device_id){ log('⛔ token & device_id are required to save'); return; }
+      // capture all settings into profile
+      const payload = {
+        name,
+        token,
+        device_id,
+        paymentMethod: document.getElementById('paymentMethod').value || '9',
+        amount: document.getElementById('amount').value || '2',
+        retryCount: document.getElementById('retryCount').value || '5',
+        mode: document.getElementById('mode').value || 'manual',
+        sendOption: document.getElementById('sendOption').value || 'now',
+        manualDate: document.getElementById('manualDate').value || '',
+        manualHour: document.getElementById('manualHour').value || '17',
+        sendAt: sendAtInput.value || ''
+      };
+      let list = loadProfiles();
+      const id = profileSelect.value;
+      if(id){
+        const idx = list.findIndex(x=>x.id===id);
+        if(idx>=0){ list[idx] = { ...list[idx], ...payload }; }
+        log(`💾 Updated profile: ${name||id}`);
+      } else {
+        const newId = uuid();
+        list.push({ id:newId, ...payload });
+        profileSelect.value = newId;
+        log(`💾 Saved new profile: ${name||newId}`);
+      }
+      saveProfiles(list);
+      renderProfileDropdown(profileSelect.value);
+      // also store selectedProfileId in settings
+      const settingsRaw = localStorage.getItem('apiScheduler_v2');
+      let settings = {}; try{ settings = JSON.parse(settingsRaw)||{} }catch(_){ settings={} }
+      settings.selectedProfileId = profileSelect.value;
+      localStorage.setItem('apiScheduler_v2', JSON.stringify(settings));
+      saveSettings();
+    }
+      let list = loadProfiles();
+      const id = profileSelect.value;
+      if(id){
+        // update existing
+        const idx = list.findIndex(x=>x.id===id);
+        if(idx>=0){ list[idx] = { ...list[idx], name, token, device_id }; }
+        log(`💾 Updated profile: ${name||id}`);
+      } else {
+        // create new
+        const newId = uuid();
+        list.push({ id:newId, name, token, device_id });
+        log(`💾 Saved new profile: ${name||newId}`);
+        profileSelect.value = newId;
+      }
+      saveProfiles(list);
+      renderProfileDropdown(profileSelect.value);
+      saveSettings();
+    }
+
+    function deleteProfile(){
+      const id = profileSelect.value;
+      if(!id){ log('ℹ️ No profile selected'); return; }
+      let list = loadProfiles();
+      const idx = list.findIndex(x=>x.id===id);
+      if(idx>=0){
+        const name = list[idx].name || id;
+        list.splice(idx,1);
+        saveProfiles(list);
+        renderProfileDropdown('');
+        newProfile();
+        log(`🗑️ Deleted profile: ${name}`);
+      } else {
+        log('ℹ️ Selected profile not found');
+      }
+    }
+
+    /* ========== Request + Retry ========== */
+    function buildParams(start,end,paymentMethod,amount){
+      return new URLSearchParams({
+        token: tokenInput.value || '',
+        device_id: deviceInput.value || '',
+        card_id:'6364',
+        slot_id:'12489',
+        contact:'0818855930',
+        remark:'',
+        start:start,
+        end:end,
+        payment_method:paymentMethod,
+        cuid:'',
+        amount:amount,
+        return_uri:'https://client.loga.app/card/6364/shop/approve-order'
+      });
+    }
+
+    async function doFetchOnce(start,end,paymentMethod,amount){
+      const url='https://www.loga.app/privateapi/booking/create_appointment';
+      const params=buildParams(start,end,paymentMethod,amount);
+      const resp = await fetch(url,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:params});
+      const status = resp.status;
+      const text = await resp.text();
+      let data = null; try { data = JSON.parse(text); } catch(_) {}
+      return { ok: resp.ok, status, data, raw:text };
+    }
+
+    async function sendPostWithRetry(start,end,paymentMethod,amount,dryRun=false,retries=5){
+      const url='https://www.loga.app/privateapi/booking/create_appointment';
+      const params=buildParams(start,end,paymentMethod,amount);
+
+      if(dryRun){
+        log(`🧪 [Dry Run] POST ${url}`);
+        log(`Payload:\n${params.toString().replaceAll('&','\n')}`);
+        return;
+      }
+
+      if(!(tokenInput.value && deviceInput.value)){
+        log('⛔ token/device_id required for real request');
+        return;
+      }
+
+      const totalAttempts = Math.max(1, parseInt(retries,10)||0) + 1; // first try + N retries
+      for(let attempt=1; attempt<=totalAttempts; attempt++){
+        log(`➡️ Attempt ${attempt}/${totalAttempts} ...`);
+        try{
+          const res = await doFetchOnce(start,end,paymentMethod,amount);
+          if(res.ok){
+            log(`✅ Success (HTTP ${res.status})`);
+            // payment_uri finder (handles nested)
+            let paymentUri = null;
+            if(res?.data?.data?.data?.payment_uri){ paymentUri = res.data.data.data.payment_uri; }
+            else if(res?.data?.data?.payment_uri){ paymentUri = res.data.data.payment_uri; }
+            else if(res?.data?.payment_uri){ paymentUri = res.data.payment_uri; }
+            if(paymentUri){
+              log(`🔗 Opening payment_uri in new tab: ${paymentUri}`);
+              window.open(paymentUri, '_blank');
+            } else { log(`ℹ️ payment_uri not found in response`); }
+            return;
+          } else {
+            log(`❌ Failed (HTTP ${res.status})${res.raw?`\nResponse: ${res.raw}`:''}`);
+          }
+        }catch(e){ log(`❌ Error: ${e}`); }
+        if(attempt < totalAttempts){ await new Promise(r=>setTimeout(r, 500)); }
+      }
+      log('🛑 All attempts exhausted');
+    }
+
+    /* ========== Submit Handler ========== */
+    async function handleSubmit(dryRun=false){
+      saveSettings();
+      const mode=document.getElementById('mode').value;
+      const sendOpt=document.getElementById('sendOption').value;
+      const paymentMethod=document.getElementById('paymentMethod').value;
+      const amount=document.getElementById('amount').value;
+      const retries=parseInt(document.getElementById('retryCount').value)||0;
+
+      if(mode==='manual'){
+        const date=document.getElementById('manualDate').value;
+        const hour=parseInt(document.getElementById('manualHour').value);
+        if(!date||isNaN(hour)){ log('⛔ Please select both date and hour'); return; }
+        const startUnix=toEpochThailand(date,hour);
+        const endUnix=toEpochThailand(date,hour+1);
+
+        if(sendOpt==='now'){
+          await sendPostWithRetry(startUnix,endUnix,paymentMethod,amount,dryRun,retries);
+        }else{
+          const sendAtStr=sendAtInput.value; if(!sendAtStr){ log('⛔ Please choose "Send at" time'); return; }
+          const target=new Date(sendAtStr);
+          if(target<=new Date()){ log('⛔ "Send at" must be in the future'); return; }
+          nextSendEl.textContent=fmt(target)+' (TH)';
+          scheduleInfo.style.display='block';
+          startCountdown(target);
+          const delay=target.getTime()-Date.now();
+          log(`⏳ Scheduled manual request at ${fmt(target)} (TH)`);
+          setTimeout(()=>{ log('🚀 Sending manual request'); sendPostWithRetry(startUnix,endUnix,paymentMethod,amount,dryRun,retries); }, delay);
+        }
+        return;
+      }
+
+      // friday booking – next week's Friday, 19–20 and 20–21 (async)
+      const nextFri=getNextWeekFriday();
+      const y=nextFri.getFullYear();const m=String(nextFri.getMonth()+1).padStart(2,'0');const d=String(nextFri.getDate()).padStart(2,'0');
+      const dateStr=`${y}-${m}-${d}`;
+      const slot1={ start: toEpochThailand(dateStr,19), end: toEpochThailand(dateStr,20) };
+      const slot2={ start: toEpochThailand(dateStr,20), end: toEpochThailand(dateStr,21) };
+
+      if(sendOpt==='now'){
+        log(`🚀 Sending Friday booking NOW for ${dateStr} 19–21 (2 requests, async)`);
+        await Promise.allSettled([
+          sendPostWithRetry(slot1.start,slot1.end,paymentMethod,amount,dryRun,retries),
+          sendPostWithRetry(slot2.start,slot2.end,paymentMethod,amount,dryRun,retries)
+        ]);
+      }else{
+        const sendAtStr=sendAtInput.value; if(!sendAtStr){ log('⛔ Please choose "Send at" time'); return; }
+        const target=new Date(sendAtStr);
+        if(target<=new Date()){ log('⛔ "Send at" must be in the future'); return; }
+        nextSendEl.textContent=fmt(target)+' (TH)';
+        scheduleInfo.style.display='block';
+        startCountdown(target);
+        const delay=target.getTime()-Date.now();
+        log(`⏳ Scheduled Friday booking at ${fmt(target)} (TH) for ${dateStr} 19–21 (2 requests, async) with ${retries} retries each`);
+        setTimeout(()=>{
+          log('🚀 Sending 2 Friday booking requests concurrently');
+          Promise.allSettled([
+            sendPostWithRetry(slot1.start,slot1.end,paymentMethod,amount,dryRun,retries),
+            sendPostWithRetry(slot2.start,slot2.end,paymentMethod,amount,dryRun,retries)
+          ]).then(()=>{ log('🟢 Both Friday requests finished (see logs above)'); });
+        }, delay);
+      }
+    }
+
+    /* ========== Init ========== */
+    function initProfilesUI(){
+      renderProfileDropdown();
+      // restore selected profile after settings load
+      const saved = localStorage.getItem('apiScheduler_v2');
+      if(saved){ try{ const d=JSON.parse(saved); if(d.selectedProfileId){ renderProfileDropdown(d.selectedProfileId); const list=loadProfiles(); const p=list.find(x=>x.id===d.selectedProfileId); if(p){ tokenInput.value=p.token||''; deviceInput.value=p.device_id||''; profileName.value=p.name||''; document.getElementById('paymentMethod').value = p.paymentMethod||'9'; document.getElementById('amount').value = p.amount||'2'; document.getElementById('retryCount').value = p.retryCount||'5'; document.getElementById('mode').value = p.mode||'manual'; document.getElementById('sendOption').value = p.sendOption||'now'; document.getElementById('manualDate').value = p.manualDate||''; document.getElementById('manualHour').value = p.manualHour||'17'; sendAtInput.value = p.sendAt||''; onModeChange(); onSendOptionChange(); updateFridayInfo(); log(`👤 Loaded profile: ${p.name || p.id}`); } } } catch(_){} }
+      // autosave when changing token/device/name or selecting a profile
+      [tokenInput, deviceInput, profileName, profileSelect].forEach(el=>{ el.addEventListener('input', saveSettings); el.addEventListener('change', saveSettings); });
+    } } } catch(_){} }
+      // autosave when changing token/device/name
+      [tokenInput, deviceInput, profileName, profileSelect].forEach(el=>{
+        el.addEventListener('input', saveSettings);
+        el.addEventListener('change', saveSettings);
+      });
+    }
+
+    // boot
+    loadSettings();
+    initProfilesUI();
+  </script>
+>>>>>>> 682dd74d8ffe48696c9aef634e61fe8196d19821
 </body>
 </html>
