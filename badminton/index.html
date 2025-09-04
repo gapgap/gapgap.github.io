@@ -1,112 +1,161 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="th">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>API Booking Scheduler</title>
-<style>
-body { font-family: sans-serif; padding: 2rem; }
-input, button { font-size: 1rem; padding: 0.5rem; margin: 0.5rem 0; }
-label { display: block; margin-top: 1rem; }
-.log { font-family: monospace; background: #f4f4f4; padding: 1rem; margin-top: 1rem; }
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>API Booking Scheduler</title>
+  <style>
+    :root { --gap: .8rem; }
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; padding: 1rem; margin: 0; background: #fff; color: #111; }
+    .container { max-width: 980px; margin: 0 auto; padding: .5rem; }
+    h1 { font-size: 1.4rem; margin: .5rem 0 1rem; }
+    input, button, select { font-size: 1rem; padding: .6rem .7rem; margin: .25rem 0; width: 100%; box-sizing: border-box; }
+    label { display: block; margin-top: .4rem; font-weight: 600; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: var(--gap); }
+    @media (max-width: 720px) { .row { grid-template-columns: 1fr; } }
+    .panel { background: #fafafa; border: 1px solid #eee; border-radius: 12px; padding: 1rem; margin-top: 1rem; }
+    .muted { color: #666; font-size: .95rem; font-weight: 400; }
+    .highlight { font-weight: 700; }
+    .controls { margin-top: .8rem; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: var(--gap); }
+    @media (max-width: 600px) { .controls { grid-template-columns: 1fr; } }
+    .log { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: #f7f7f9; border: 1px solid #eee; padding: 1rem; margin-top: 1rem; white-space: pre-wrap; max-height: 40vh; overflow-y: auto; border-radius: 12px; }
+    .inline-actions { display: flex; gap: .5rem; flex-wrap: wrap; align-items: center; }
+    .inline-actions input[type="file"] { width: auto; }
+  </style>
 </head>
 <body>
-<h1>API Scheduler</h1>
+  <div class="container">
+    <h1>API Scheduler</h1>
 
+    <!-- Mode + Send option -->
+    <div class="row">
+      <label>
+        Mode (2 only)
+        <select id="mode">
+          <option value="manual">Manual testing</option>
+          <option value="friday">Friday booking (next week)</option>
+        </select>
+      </label>
 
-<label>
-Test Run Time (HH:MM):
-<input type="time" id="testTime">
-</label>
+      <label>
+        Send option
+        <select id="sendOption">
+          <option value="now">Send now</option>
+          <option value="schedule">Schedule</option>
+        </select>
+      </label>
 
+      <label id="sendAtWrap" style="display:none">
+        Send at (TH)
+        <input type="datetime-local" id="sendAt" />
+      </label>
+    </div>
 
-<button onclick="scheduleRequests()">Schedule API Requests</button>
-<div class="log" id="log"></div>
+    <!-- Manual config -->
+    <div id="manualPanel" class="panel">
+      <div class="row">
+        <label>
+          Date (TH)
+          <input type="date" id="manualDate" />
+        </label>
+        <label>
+          Hour (TH) [17–21]
+          <select id="manualHour">
+            <option value="17">17:00</option>
+            <option value="18">18:00</option>
+            <option value="19">19:00</option>
+            <option value="20">20:00</option>
+            <option value="21">21:00</option>
+          </select>
+        </label>
+      </div>
+      <p class="muted">* End time = +1 hour, both converted to epoch (UTC) in the request.</p>
+    </div>
 
+    <!-- Credential profiles -->
+    <div class="panel">
+      <div class="row">
+        <label>
+          Credential profile
+          <select id="profileSelect"></select>
+        </label>
+        <label>
+          Profile name
+          <input type="text" id="profileName" placeholder="e.g. My QR iPhone" />
+        </label>
+      </div>
+      <div class="row">
+        <label>
+          Token
+          <input type="password" id="token" placeholder="Enter token" />
+        </label>
+        <label>
+          Device ID
+          <input type="text" id="device_id" placeholder="Enter device_id" />
+        </label>
+      </div>
+      <div class="inline-actions">
+        <button id="btnSaveProfile">💾 Save / Update Profile</button>
+        <button id="btnNewProfile">🆕 New Profile</button>
+        <button id="btnDeleteProfile">🗑️ Delete Profile</button>
+        <button id="btnExportProfiles">📤 Export Profiles</button>
+        <label>📥 Import Profiles
+          <input type="file" id="inputImportProfiles" accept="application/json" />
+        </label>
+      </div>
+      <p class="muted">Profiles are kept in this browser (localStorage). Use Export/Import to move between devices.</p>
+    </div>
 
-<script>
-const logDiv = document.getElementById('log');
+    <!-- Friday booking info -->
+    <div id="friPanel" class="panel" style="display:none">
+      <div><span class="highlight">Target Friday (TH):</span> <span id="friDate">-</span></div>
+      <div><span class="highlight">Will book slots (TH):</span> <span id="friSlots">-</span></div>
+      <div class="muted">Both requests will be sent <b>concurrently</b>.</div>
+    </div>
 
+    <!-- General params -->
+    <div class="row">
+      <label>
+        Payment Method
+        <select id="paymentMethod">
+          <option value="9">QR</option>
+          <option value="1">Point</option>
+        </select>
+      </label>
 
-function log(message) {
-const now = new Date().toLocaleTimeString();
-logDiv.innerText += `[${now}] ${message}\n`;
-}
+      <label>
+        Amount
+        <input type="number" id="amount" value="2" min="1" />
+      </label>
+    </div>
 
+    <div class="row">
+      <label>
+        Retry attempts
+        <input type="number" id="retryCount" value="5" min="0" step="1" />
+      </label>
+      <label>
+        Retry delay (fixed)
+        <input type="text" value="500 ms" disabled />
+      </label>
+    </div>
 
-function getUnixTimeNextFriday(hour, minute) {
-const now = new Date();
-const day = now.getDay();
-const daysUntilFriday = (5 + 7 - day) % 7 || 7;
-const nextFriday = new Date(now.getFullYear(), now.getMonth(), now.getDate() + daysUntilFriday, hour, minute, 0);
-return Math.floor(nextFriday.getTime() / 1000);
-}
+    <!-- Schedule preview -->
+    <div id="scheduleInfo" class="panel" style="display:none">
+      <div><span class="highlight">Next send at:</span> <span id="nextSend">-</span></div>
+      <div class="muted">Countdown: <span id="countdown">--:--:--</span></div>
+    </div>
 
+    <!-- Actions -->
+    <div class="controls">
+      <button id="btnTest">🔍 Test Only (show request)</button>
+      <button id="btnSubmit">🚀 Submit</button>
+      <button id="btnClearLog">🧹 Clear Log</button>
+    </div>
 
-function sendPostRequest(start, end) {
-const url = 'https://www.loga.app/privateapi/booking/create_appointment';
-const body = new URLSearchParams({
-token: '7ca52e96db35869acbde2a3462be6b75d52c84d6',
-device_id: 'f95f4cfd-bc0d-41a3-ba83-896389e21c8b',
-card_id: '6364',
-slot_id: '12489',
-contact: '0818855930',
-remark: '',
-start: start,
-end: end,
-payment_method: '9',
-cuid: '',
-amount: '2',
-return_uri: 'https://client.loga.app/card/6364/shop/approve-order'
-});
+    <div class="log" id="log"></div>
+  </div>
 
-
-fetch(url, {
-method: 'POST',
-headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-body: body
-})
-.then(response => response.json())
-.then(data => log(`Request success: ${JSON.stringify(data)}`))
-.catch(err => log(`Request failed: ${err}`));
-}
-
-
-function scheduleRequests() {
-const testTimeValue = document.getElementById('testTime').value;
-const [testHour, testMinute] = testTimeValue ? testTimeValue.split(':').map(Number) : [null, null];
-
-
-// Schedule for midnight
-const now = new Date();
-const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0);
-const msUntilMidnight = midnight.getTime() - now.getTime();
-
-
-const startMidnight = getUnixTimeNextFriday(13, 0);
-const endMidnight = getUnixTimeNextFriday(14, 0);
-
-
-log(`Scheduled midnight request in ${msUntilMidnight / 1000}s`);
-setTimeout(() => sendPostRequest(startMidnight, endMidnight), msUntilMidnight);
-
-
-// Schedule for custom test time
-if (testHour !== null && testMinute !== null) {
-const testDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), testHour, testMinute, 0);
-if (testDate < now) testDate.setDate(testDate.getDate() + 1);
-const msUntilTest = testDate.getTime() - now.getTime();
-
-
-const startTest = getUnixTimeNextFriday(13, 0);
-const endTest = getUnixTimeNextFriday(14, 0);
-
-
-log(`Scheduled test-time request at ${testHour}:${testMinute} in ${msUntilTest / 1000}s`);
-setTimeout(() => sendPostRequest(startTest, endTest), msUntilTest);
-}
-}
-</script>
+  <script src="./app.js"></script>
 </body>
 </html>
