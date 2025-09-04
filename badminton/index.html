@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>API Booking Scheduler</title>
+<style>
+body { font-family: sans-serif; padding: 2rem; }
+input, button { font-size: 1rem; padding: 0.5rem; margin: 0.5rem 0; }
+label { display: block; margin-top: 1rem; }
+.log { font-family: monospace; background: #f4f4f4; padding: 1rem; margin-top: 1rem; }
+</style>
+</head>
+<body>
+<h1>API Scheduler</h1>
+
+
+<label>
+Test Run Time (HH:MM):
+<input type="time" id="testTime">
+</label>
+
+
+<button onclick="scheduleRequests()">Schedule API Requests</button>
+<div class="log" id="log"></div>
+
+
+<script>
+const logDiv = document.getElementById('log');
+
+
+function log(message) {
+const now = new Date().toLocaleTimeString();
+logDiv.innerText += `[${now}] ${message}\n`;
+}
+
+
+function getUnixTimeNextFriday(hour, minute) {
+const now = new Date();
+const day = now.getDay();
+const daysUntilFriday = (5 + 7 - day) % 7 || 7;
+const nextFriday = new Date(now.getFullYear(), now.getMonth(), now.getDate() + daysUntilFriday, hour, minute, 0);
+return Math.floor(nextFriday.getTime() / 1000);
+}
+
+
+function sendPostRequest(start, end) {
+const url = 'https://www.loga.app/privateapi/booking/create_appointment';
+const body = new URLSearchParams({
+token: '7ca52e96db35869acbde2a3462be6b75d52c84d6',
+device_id: 'f95f4cfd-bc0d-41a3-ba83-896389e21c8b',
+card_id: '6364',
+slot_id: '12489',
+contact: '0818855930',
+remark: '',
+start: start,
+end: end,
+payment_method: '9',
+cuid: '',
+amount: '2',
+return_uri: 'https://client.loga.app/card/6364/shop/approve-order'
+});
+
+
+fetch(url, {
+method: 'POST',
+headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+body: body
+})
+.then(response => response.json())
+.then(data => log(`Request success: ${JSON.stringify(data)}`))
+.catch(err => log(`Request failed: ${err}`));
+}
+
+
+function scheduleRequests() {
+const testTimeValue = document.getElementById('testTime').value;
+const [testHour, testMinute] = testTimeValue ? testTimeValue.split(':').map(Number) : [null, null];
+
+
+// Schedule for midnight
+const now = new Date();
+const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0);
+const msUntilMidnight = midnight.getTime() - now.getTime();
+
+
+const startMidnight = getUnixTimeNextFriday(13, 0);
+const endMidnight = getUnixTimeNextFriday(14, 0);
+
+
+log(`Scheduled midnight request in ${msUntilMidnight / 1000}s`);
+setTimeout(() => sendPostRequest(startMidnight, endMidnight), msUntilMidnight);
+
+
+// Schedule for custom test time
+if (testHour !== null && testMinute !== null) {
+const testDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), testHour, testMinute, 0);
+if (testDate < now) testDate.setDate(testDate.getDate() + 1);
+const msUntilTest = testDate.getTime() - now.getTime();
+
+
+const startTest = getUnixTimeNextFriday(13, 0);
+const endTest = getUnixTimeNextFriday(14, 0);
+
+
+log(`Scheduled test-time request at ${testHour}:${testMinute} in ${msUntilTest / 1000}s`);
+setTimeout(() => sendPostRequest(startTest, endTest), msUntilTest);
+}
+}
+</script>
+</body>
+</html>
