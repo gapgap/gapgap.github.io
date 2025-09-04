@@ -226,6 +226,142 @@
         document.getElementById('device_id').value=d.device_id||'';
       }catch(e){ log('⚠️ Failed to load settings'); }}
       onModeChange(); onSendOptionChange(); updateFridayInfo();
+      // autosave on change
+      const ids=['mode','sendOption','sendAt','manualDate','manualHour','paymentMethod','amount','retryCount','token','device_id'];
+      ids.forEach(id=>{
+        const el=document.getElementById(id);
+        if(!el) return;
+        const ev = (el.tagName==='INPUT' && (el.type==='text' || el.type==='password' || el.type==='datetime-local')) ? 'input' : 'change';
+        el.addEventListener(ev, saveSettings);
+      });
+    }
+
+    // --- Request + Retry ---
+    function buildParams(start,end,paymentMethod,amount){
+      return new URLSearchParams({
+        token: document.getElementById('token').value || '',
+        device_id: document.getElementById('device_id').value || '',
+        card_id:'6364',
+        slot_id:'12489',
+        contact:'0818855930',
+        remark:'',
+        start:start,
+        end:end,
+        payment_method:paymentMethod,
+        cuid:'',
+        amount:amount,
+        return_uri:'https://client.loga.app/card/6364/shop/approve-order'
+      });
+    }
+
+    async function doFetchOnce(start,end,paymentMethod,amount){
+      const url='https://www.loga.app/privateapi/booking/create_appointment';
+      const params=buildParams(start,end,paymentMethod,amount);
+      const resp = await fetch(url,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:params});
+      const status = resp.status;
+      const text = await resp.text();
+      let data = null; try { data = JSON.parse(text); } catch(_) {}
+      return { ok: resp.ok, status, data, raw:text };
+    }
+
+    async function sendPostWithRetry(start,end,paymentMethod,amount,dryRun=false,retries=5){
+      const url='https://www.loga.app/privateapi/booking/create_appointment';
+      const params=buildParams(start,end,paymentMethod,amount);
+
+      if(dryRun){
+        log(`🧪 [Dry Run] POST ${url}`);
+        log(`Payload:\n${params.toString().replaceAll('&','\n')}`);
+        return;
+      }
+
+      const token=document.getElementById('token').value; const device=document.getElementById('device_id').value;
+      if(!token || !device){ log('⛔ token/device_id required for real request'); return; }
+
+      const totalAttempts = Math.max(1, parseInt(retries,10)||0) + 1;
+      for(let attempt=1; attempt<=totalAttempts; attempt++){
+        log(`➡️ Attempt ${attempt}/${totalAttempts} ...`);
+        try{
+          const res = await doFetchOnce(start,end,paymentMethod,amount);
+          if(res.ok){
+            log(`✅ Success (HTTP ${res.status})`);
+            const paymentUri = res?.data?.data?.payment_uri || res?.data?.payment_uri;
+            if(paymentUri){
+              log(`🔗 Opening payment_uri in new tab`);
+              window.open(paymentUri, '_blank');
+            } else {
+              log(`ℹ️ payment_uri not found in response`);
+            }
+            return;
+          } else {
+            log(`❌ Failed (HTTP ${res.status})${res.raw?`\nResponse: ${res.raw}`:''}`);
+          }
+        }catch(e){ log(`❌ Error: ${e}`); }
+        if(attempt < totalAttempts){ await new Promise(r=>setTimeout(r, 500)); }
+      }
+      log('🛑 All attempts exhausted');
+    }
+
+    async function handleSubmit(dryRun=false){
+      saveSettings();
+      const mode=document.getElementById('mode').value;
+      const sendOpt=document.getElementById('sendOption').value;
+      const paymentMethod=document.getElementById('paymentMethod').value;
+      const amount=document.getElementById('amount').value;
+      const retries=parseInt(document.getElementById('retryCount').value)||0;
+
+      if(mode==='manual'){
+        const date=document.getElementById('manualDate').value;
+        const hour=parseInt(document.getElementById('manualHour').value);
+        if(!date||isNaN(hour)){ log('⛔ Please select both date and hour'); return; }
+        const startUnix=toEpochThailand(date,hour);
+        const endUnix=toEpochThailand(date,hour+1);
+
+        if(sendOpt==='now'){
+          await sendPostWithRetry(startUnix,endUnix,paymentMethod,amount,dryRun,retries);
+        }else{
+          const sendAtStr=sendAtInput.value; if(!sendAtStr){ log('⛔ Please choose "Send at" time'); return; }
+          const target=new Date(sendAtStr);
+          if(target<=new Date()){ log('⛔ "Send at" must be in the future'); return; }
+          nextSendEl.textContent=fmt(target)+' (TH)';
+          scheduleInfo.style.display='block';
+          startCountdown(target);
+          const delay=target.getTime()-Date.now();
+          log(`⏳ Scheduled manual request at ${fmt(target)} (TH)`);
+          setTimeout(()=>{ log('🚀 Sending manual request'); sendPostWithRetry(startUnix,endUnix,paymentMethod,amount,dryRun,retries); }, delay);
+        }
+        return;
+      }
+
+      // friday booking (next week) – two requests for 19–20 and 20–21
+      const nextFri=getNextWeekFriday();
+      const y=nextFri.getFullYear();const m=String(nextFri.getMonth()+1).padStart(2,'0');const d=String(nextFri.getDate()).padStart(2,'0');
+      const dateStr=`${y}-${m}-${d}`;
+      const slot1={ start: toEpochThailand(dateStr,19), end: toEpochThailand(dateStr,20) };
+      const slot2={ start: toEpochThailand(dateStr,20), end: toEpochThailand(dateStr,21) };
+
+      if(sendOpt==='now'){
+        log(`🚀 Sending Friday booking NOW for ${dateStr} 19–21 (2 requests, async)`);
+        await Promise.allSettled([
+          sendPostWithRetry(slot1.start,slot1.end,paymentMethod,amount,dryRun,retries),
+          sendPostWithRetry(slot2.start,slot2.end,paymentMethod,amount,dryRun,retries)
+        ]);
+      }else{
+        const sendAtStr=sendAtInput.value; if(!sendAtStr){ log('⛔ Please choose "Send at" time'); return; }
+        const target=new Date(sendAtStr);
+        if(target<=new Date()){ log('⛔ "Send at" must be in the future'); return; }
+        nextSendEl.textContent=fmt(target)+' (TH)';
+        scheduleInfo.style.display='block';
+        startCountdown(target);
+        const delay=target.getTime()-Date.now();
+        log(`⏳ Scheduled Friday booking at ${fmt(target)} (TH) for ${dateStr} 19–21 (2 requests, async) with ${retries} retries each`);
+        setTimeout(()=>{
+          log('🚀 Sending 2 Friday booking requests concurrently');
+          Promise.allSettled([
+            sendPostWithRetry(slot1.start,slot1.end,paymentMethod,amount,dryRun,retries),
+            sendPostWithRetry(slot2.start,slot2.end,paymentMethod,amount,dryRun,retries)
+          ]).then(()=>{ log('🟢 Both Friday requests finished (see logs above)'); });
+        }, delay);
+      }
     }
 
     // initial load
