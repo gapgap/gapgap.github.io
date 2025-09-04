@@ -69,6 +69,17 @@
       <p class="muted">* End time = +1 hour, both converted to epoch (UTC) in the request.</p>
     </div>
 
+    <div class="row panel">
+      <label>
+        Token
+        <input type="password" id="token" placeholder="Enter token" />
+      </label>
+      <label>
+        Device ID
+        <input type="text" id="device_id" placeholder="Enter device_id" />
+      </label>
+    </div>
+
     <!-- Friday booking info -->
     <div id="friPanel" class="panel" style="display:none">
       <div><span class="highlight">Target Friday (TH):</span> <span id="friDate">-</span></div>
@@ -186,8 +197,8 @@
     async function doFetchOnce(start,end,paymentMethod,amount){
       const url='https://www.loga.app/privateapi/booking/create_appointment';
       const params=new URLSearchParams({
-        token:'7ca52e96db35869acbde2a3462be6b75d52c84d6',
-        device_id:'f95f4cfd-bc0d-41a3-ba83-896389e21c8b',
+        token: document.getElementById('token').value || '',
+        device_id: document.getElementById('device_id').value || '',
         card_id:'6364',
         slot_id:'12489',
         contact:'0818855930',
@@ -209,7 +220,7 @@
     async function sendPostWithRetry(start,end,paymentMethod,amount,dryRun=false,retries=5){
       if(dryRun){
         const url='https://www.loga.app/privateapi/booking/create_appointment';
-        const params=new URLSearchParams({ token:'7ca52e96db35869acbde2a3462be6b75d52c84d6', device_id:'f95f4cfd-bc0d-41a3-ba83-896389e21c8b', card_id:'6364', slot_id:'12489', contact:'0818855930', remark:'', start, end, payment_method:paymentMethod, cuid:'', amount, return_uri:'https://client.loga.app/card/6364/shop/approve-order' });
+        const params=new URLSearchParams({ token: document.getElementById('token').value || '', device_id: document.getElementById('device_id').value || '', card_id:'6364', slot_id:'12489', contact:'0818855930', remark:'', start, end, payment_method:paymentMethod, cuid:'', amount, return_uri:'https://client.loga.app/card/6364/shop/approve-order' });
         log(`🧪 [Dry Run] POST ${url}`);
         log(`Payload:\n${params.toString().replaceAll('&','\n')}`);
         return;
@@ -317,6 +328,8 @@
         paymentMethod: document.getElementById('paymentMethod').value,
         amount: document.getElementById('amount').value,
         retryCount: document.getElementById('retryCount').value,
+        token: document.getElementById('token').value,
+        device_id: document.getElementById('device_id').value,
       };
       sessionStorage.setItem('apiScheduler_v2', JSON.stringify(data));
     }
@@ -332,6 +345,8 @@
         document.getElementById('paymentMethod').value=d.paymentMethod||'9';
         document.getElementById('amount').value=d.amount||'2';
         document.getElementById('retryCount').value=d.retryCount||'5';
+        document.getElementById('token').value=d.token||'';
+        document.getElementById('device_id').value=d.device_id||'';
       }catch(e){ log('⚠️ Failed to load session'); }}
       onModeChange(); onSendOptionChange(); updateFridayInfo();
     }
