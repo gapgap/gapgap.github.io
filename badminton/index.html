@@ -94,10 +94,11 @@
         return_uri: 'https://client.loga.app/card/6364/shop/approve-order'
       });
 
-      const fullUrl = `${url}?${params.toString()}`;
-
       if (dryRun) {
-        log(`🧪 [Dry Run] POST URL: ${fullUrl}`);
+        log(`🧪 [Dry Run] Request Preview:`);
+        log(`POST ${url}`);
+        log(`Payload:`);
+        log(params.toString().replaceAll('&', '\n'));
         return;
       }
 
@@ -131,6 +132,11 @@
 
         startUnix = Math.floor(new Date(startDT).getTime() / 1000);
         endUnix = Math.floor(new Date(endDT).getTime() / 1000);
+
+        if (dryRun) {
+          sendPostRequest(startUnix, endUnix, paymentMethod, amount, true);
+          return;
+        }
       } else {
         const slot1 = { start: getUnixTimeNextFriday(19, 0), end: getUnixTimeNextFriday(20, 0) };
         const slot2 = { start: getUnixTimeNextFriday(20, 0), end: getUnixTimeNextFriday(21, 0) };
@@ -145,7 +151,7 @@
       const msUntilMidnight = midnight.getTime() - now.getTime();
 
       log(`Scheduled midnight request in ${msUntilMidnight / 1000}s`);
-      setTimeout(() => sendPostRequest(startUnix, endUnix, paymentMethod, amount, dryRun), msUntilMidnight);
+      setTimeout(() => sendPostRequest(startUnix, endUnix, paymentMethod, amount), msUntilMidnight);
 
       if (testHour !== null && testMinute !== null) {
         const testDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), testHour, testMinute, 0);
@@ -153,7 +159,7 @@
         const msUntilTest = testDate.getTime() - now.getTime();
 
         log(`Scheduled test-time request at ${testHour}:${testMinute} in ${msUntilTest / 1000}s`);
-        setTimeout(() => sendPostRequest(startUnix, endUnix, paymentMethod, amount, dryRun), msUntilTest);
+        setTimeout(() => sendPostRequest(startUnix, endUnix, paymentMethod, amount), msUntilTest);
       }
     }
 
