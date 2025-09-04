@@ -14,6 +14,7 @@
     .row { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: .8rem; }
     .muted { color: #666; font-size: .95rem; }
     .highlight { font-weight: 600; }
+    .inline { display: inline-block; margin-right: 1rem; }
   </style>
 </head>
 <body>
@@ -21,24 +22,32 @@
 
   <div class="row">
     <label>
-      Test Run Time (HH:MM):
-      <input type="time" id="testTime" />
+      Mode (only 2):
+      <select id="mode" onchange="onModeChange()">
+        <option value="manual">Manual testing</option>
+        <option value="friday">Friday booking (next week)</option>
+      </select>
     </label>
 
     <label>
-      Mode:
-      <select id="startMode" onchange="onModeChange()">
-        <option value="manual">Manual (testing)</option>
-        <option value="friday">Friday Fixed (demo schedule)</option>
-        <option value="real">Real – Run at Friday 00:00 (TH)</option>
+      Send option:
+      <select id="sendOption" onchange="onSendOptionChange()">
+        <option value="now">Send now</option>
+        <option value="schedule">Schedule</option>
       </select>
+    </label>
+
+    <label id="sendAtWrap" style="display:none">
+      Send at (TH):
+      <input type="datetime-local" id="sendAt" />
     </label>
   </div>
 
-  <div id="manualTimeInputs" class="panel">
+  <!-- Manual config -->
+  <div id="manualPanel" class="panel">
     <div class="row">
       <label>
-        Date:
+        Date (TH):
         <input type="date" id="manualDate" />
       </label>
       <label>
@@ -52,7 +61,13 @@
         </select>
       </label>
     </div>
-    <p class="muted">* End time = +1 hour, both converted to epoch (UTC) on send.</p>
+    <p class="muted">* End time = +1 hour, both converted to epoch (UTC) in the request.</p>
+  </div>
+
+  <!-- Friday booking info -->
+  <div id="friPanel" class="panel" style="display:none">
+    <div><span class="highlight">Target Friday (TH):</span> <span id="friDate">-</span></div>
+    <div><span class="highlight">Will book slots (TH):</span> <span id="friSlots">-</span></div>
   </div>
 
   <div class="row">
@@ -70,15 +85,14 @@
     </label>
   </div>
 
-  <div id="realInfo" class="panel" style="display:none">
-    <div><span class="highlight">Next run (TH):</span> <span id="realRunTime">-</span></div>
-    <div><span class="highlight">Will book slots (TH):</span> <span id="realSlots">-</span></div>
-    <div class="muted">Countdown to run: <span id="countdown">--:--:--</span></div>
+  <div id="scheduleInfo" class="panel" style="display:none">
+    <div><span class="highlight">Next send at:</span> <span id="nextSend">-</span></div>
+    <div class="muted">Countdown: <span id="countdown">--:--:--</span></div>
   </div>
 
   <div class="controls">
-    <button onclick="scheduleRequests(true)">🔍 Test Only (show request)</button>
-    <button onclick="scheduleRequests(false)">🚀 Submit (real request)</button>
+    <button onclick="handleSubmit(true)">🔍 Test Only (show request)</button>
+    <button onclick="handleSubmit(false)">🚀 Submit</button>
     <button onclick="clearLog()">🧹 Clear Log</button>
   </div>
 
@@ -86,232 +100,184 @@
 
   <script>
     const logDiv = document.getElementById('log');
-    const manualTimeInputs = document.getElementById('manualTimeInputs');
-    const realInfo = document.getElementById('realInfo');
-    const realRunTime = document.getElementById('realRunTime');
-    const realSlots = document.getElementById('realSlots');
+    const manualPanel = document.getElementById('manualPanel');
+    const friPanel = document.getElementById('friPanel');
+    const sendAtWrap = document.getElementById('sendAtWrap');
+    const sendAtInput = document.getElementById('sendAt');
+    const nextSendEl = document.getElementById('nextSend');
     const countdownEl = document.getElementById('countdown');
+    const friDateEl = document.getElementById('friDate');
+    const friSlotsEl = document.getElementById('friSlots');
+    const scheduleInfo = document.getElementById('scheduleInfo');
 
     let countdownTimer = null;
 
-    function nowTH() {
-      // Returns Date object representing current time in Thailand (UTC+7) but using JS Date in local with offset math
-      return new Date(); // We'll add/subtract offsets explicitly where needed
-    }
+    function fmt(dt){const y=dt.getFullYear();const m=String(dt.getMonth()+1).padStart(2,'0');const d=String(dt.getDate()).padStart(2,'0');const hh=String(dt.getHours()).padStart(2,'0');const mm=String(dt.getMinutes()).padStart(2,'0');const ss=String(dt.getSeconds()).padStart(2,'0');return `${y}-${m}-${d} ${hh}:${mm}:${ss}`}
+    function log(msg){logDiv.innerText = `[${fmt(new Date())}] ${msg}\n` + logDiv.innerText}
+    function clearLog(){logDiv.innerText=''}
 
-    function fmt(dt) {
-      // Render local time string with YYYY-MM-DD HH:mm:ss
-      const y = dt.getFullYear();
-      const m = String(dt.getMonth()+1).padStart(2,'0');
-      const d = String(dt.getDate()).padStart(2,'0');
-      const hh = String(dt.getHours()).padStart(2,'0');
-      const mm = String(dt.getMinutes()).padStart(2,'0');
-      const ss = String(dt.getSeconds()).padStart(2,'0');
-      return `${y}-${m}-${d} ${hh}:${mm}:${ss}`;
-    }
-
-    function log(message) {
-      const t = new Date();
-      logDiv.innerText = `[${fmt(t)}] ${message}\n` + logDiv.innerText;
-    }
-
-    function clearLog() { logDiv.innerText = ''; }
-
-    function onModeChange() {
-      const mode = document.getElementById('startMode').value;
-      manualTimeInputs.style.display = mode === 'manual' ? 'block' : 'none';
-      realInfo.style.display = mode === 'real' ? 'block' : 'none';
-      if (mode === 'real') updateRealPanel(); else stopCountdown();
+    function onModeChange(){
+      const mode = document.getElementById('mode').value;
+      manualPanel.style.display = mode==='manual' ? 'block' : 'none';
+      friPanel.style.display = mode==='friday' ? 'block' : 'none';
+      updateFridayInfo();
       saveSession();
     }
 
-    function stopCountdown(){ if (countdownTimer) { clearInterval(countdownTimer); countdownTimer = null; } }
-
-    function getNextFridayDateTHStart() {
-      // Compute Friday 00:00 (TH timezone) of the upcoming Friday (today-> if today is Fri but past midnight already, choose next week)
-      const now = new Date();
-      // We want next Friday 00:00 TH. Build a Date at local, then convert to TH epoch UTC when sending.
-      const day = now.getDay(); // 0 Sun .. 6 Sat
-      let daysUntilFriday = (5 - day);
-      if (daysUntilFriday < 0) daysUntilFriday += 7;
-      // If today is Friday but we already past 00:00, still choose today 00:00 if in the future? We want *upcoming* 00:00; if current time >= Fri 00:00, pick next week's Friday.
-      const candidate = new Date(now.getFullYear(), now.getMonth(), now.getDate() + daysUntilFriday, 0, 0, 0, 0);
-      if (now >= candidate) {
-        // move to next week
-        candidate.setDate(candidate.getDate() + 7);
-      }
-      return candidate; // JS Date at local timezone representing TH 00:00 if browser is in TH; we will treat it as TH clock display only
-    }
-
-    function toEpochThailand(dateStr, hour) {
-      // dateStr = YYYY-MM-DD in Thailand; hour is 0-23 in Thailand
-      const [year, month, day] = dateStr.split('-').map(Number);
-      // Convert TH time (UTC+7) to UTC epoch: subtract 7 hours
-      const utc = new Date(Date.UTC(year, month - 1, day, hour - 7, 0, 0));
-      return Math.floor(utc.getTime() / 1000);
-    }
-
-    function getUnixTimeFridaySlots() {
-      // For the same Friday as next run, compute slot epochs: 19-20 and 20-21 TH
-      const fri00 = getNextFridayDateTHStart();
-      const y = fri00.getFullYear();
-      const m = String(fri00.getMonth()+1).padStart(2,'0');
-      const d = String(fri00.getDate()).padStart(2,'0');
-      const dateStr = `${y}-${m}-${d}`;
-      return {
-        dateStr,
-        slot1: { start: toEpochThailand(dateStr, 19), end: toEpochThailand(dateStr, 20) },
-        slot2: { start: toEpochThailand(dateStr, 20), end: toEpochThailand(dateStr, 21) }
-      };
-    }
-
-    function getRealRunAtTH() {
-      // Next run instant at Friday 00:00 TH (i.e., at the start of that Friday)
-      return getNextFridayDateTHStart();
-    }
-
-    function startCountdown(target) {
+    function onSendOptionChange(){
+      const opt = document.getElementById('sendOption').value;
+      sendAtWrap.style.display = opt==='schedule' ? 'block' : 'none';
+      scheduleInfo.style.display = 'none';
       stopCountdown();
-      const tick = () => {
-        const now = new Date();
-        let diff = Math.max(0, target.getTime() - now.getTime());
-        const s = Math.floor(diff/1000);
-        const hh = String(Math.floor(s/3600)).padStart(2,'0');
-        const mm = String(Math.floor((s%3600)/60)).padStart(2,'0');
-        const ss = String(s%60).padStart(2,'0');
-        countdownEl.textContent = `${hh}:${mm}:${ss}`;
-      };
-      tick();
-      countdownTimer = setInterval(tick, 1000);
-    }
-
-    function updateRealPanel() {
-      const runAt = getRealRunAtTH();
-      const { dateStr } = getUnixTimeFridaySlots();
-      realRunTime.textContent = fmt(runAt) + ' (TH)';
-      realSlots.textContent = `${dateStr} 19:00–20:00, ${dateStr} 20:00–21:00 (TH)`;
-      startCountdown(runAt);
-    }
-
-    function getUnixTimeNextFriday(hour, minute) {
-      // Used by demo (friday) mode only
-      const now = new Date();
-      const day = now.getDay();
-      const daysUntilFriday = (5 + 7 - day) % 7 || 7;
-      const nextFriday = new Date(now.getFullYear(), now.getMonth(), now.getDate() + daysUntilFriday, hour, minute, 0);
-      return Math.floor(nextFriday.getTime() / 1000);
-    }
-
-    function sendPostRequest(start, end, paymentMethod, amount, dryRun = false) {
-      const url = 'https://www.loga.app/privateapi/booking/create_appointment';
-      const params = new URLSearchParams({
-        token: '7ca52e96db35869acbde2a3462be6b75d52c84d6',
-        device_id: 'f95f4cfd-bc0d-41a3-ba83-896389e21c8b',
-        card_id: '6364',
-        slot_id: '12489',
-        contact: '0818855930',
-        remark: '',
-        start: start,
-        end: end,
-        payment_method: paymentMethod,
-        cuid: '',
-        amount: amount,
-        return_uri: 'https://client.loga.app/card/6364/shop/approve-order'
-      });
-
-      if (dryRun) {
-        log(`🧪 [Dry Run] POST ${url}`);
-        log(`Payload:\n${params.toString().replaceAll('&', '\n')}`);
-        return;
-      }
-
-      fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: params })
-        .then(r => r.json())
-        .then(data => log(`✅ Request success: ${JSON.stringify(data)}`))
-        .catch(err => log(`❌ Request failed: ${err}`));
-    }
-
-    function scheduleRequests(dryRun = false) {
       saveSession();
+    }
 
-      const paymentMethod = document.getElementById('paymentMethod').value;
-      const amount = document.getElementById('amount').value;
-      const mode = document.getElementById('startMode').value;
+    function stopCountdown(){ if(countdownTimer){ clearInterval(countdownTimer); countdownTimer=null; } }
+    function startCountdown(target){
+      stopCountdown();
+      const tick=()=>{const now=new Date();let diff=Math.max(0,target-now);const s=Math.floor(diff/1000);const hh=String(Math.floor(s/3600)).padStart(2,'0');const mm=String(Math.floor((s%3600)/60)).padStart(2,'0');const ss=String(s%60).padStart(2,'0');countdownEl.textContent=`${hh}:${mm}:${ss}`};
+      tick(); countdownTimer=setInterval(tick,1000);
+    }
 
-      if (mode === 'manual') {
-        const date = document.getElementById('manualDate').value;
-        const hour = parseInt(document.getElementById('manualHour').value);
-        if (!date || isNaN(hour)) { log('⛔ Please select both date and hour'); return; }
-        const startUnix = toEpochThailand(date, hour);
-        const endUnix = toEpochThailand(date, hour + 1);
-        sendPostRequest(startUnix, endUnix, paymentMethod, amount, dryRun);
+    // --- Time helpers (TH -> epoch) ---
+    function toEpochThailand(dateStr, hour){
+      const [y,m,d]=dateStr.split('-').map(Number);
+      const utc=new Date(Date.UTC(y,m-1,d,hour-7,0,0));
+      return Math.floor(utc.getTime()/1000);
+    }
+
+    function getNextWeekFriday(){
+      const now=new Date();
+      const day=now.getDay(); // Sun=0..Sat=6
+      const daysUntilThisFri=(5 - day + 7) % 7; // 0..6 to this week's Friday
+      const thisFri=new Date(now.getFullYear(), now.getMonth(), now.getDate()+daysUntilThisFri, 0,0,0,0);
+      const nextWeekFri=new Date(thisFri.getTime()+7*24*3600*1000); // Friday of next week 00:00
+      return nextWeekFri;
+    }
+
+    function updateFridayInfo(){
+      if(document.getElementById('mode').value!=='friday') return;
+      const nextFri=getNextWeekFriday();
+      const y=nextFri.getFullYear();const m=String(nextFri.getMonth()+1).padStart(2,'0');const d=String(nextFri.getDate()).padStart(2,'0');
+      const dateStr=`${y}-${m}-${d}`;
+      friDateEl.textContent = `${dateStr} (TH)`;
+      friSlotsEl.textContent = `${dateStr} 19:00–20:00, ${dateStr} 20:00–21:00 (TH)`;
+    }
+
+    // --- Request ---
+    function sendPost(start,end,paymentMethod,amount,dryRun=false){
+      const url='https://www.loga.app/privateapi/booking/create_appointment';
+      const params=new URLSearchParams({
+        token:'7ca52e96db35869acbde2a3462be6b75d52c84d6',
+        device_id:'f95f4cfd-bc0d-41a3-ba83-896389e21c8b',
+        card_id:'6364',
+        slot_id:'12489',
+        contact:'0818855930',
+        remark:'',
+        start:start,
+        end:end,
+        payment_method:paymentMethod,
+        cuid:'',
+        amount:amount,
+        return_uri:'https://client.loga.app/card/6364/shop/approve-order'
+      });
+      if(dryRun){
+        log(`🧪 [Dry Run] POST ${url}`);
+        log(`Payload:\n${params.toString().replaceAll('&','\n')}`);
+        return;
+      }
+      fetch(url,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:params})
+        .then(r=>r.json()).then(d=>log(`✅ Success: ${JSON.stringify(d)}`))
+        .catch(e=>log(`❌ Failed: ${e}`));
+    }
+
+    function handleSubmit(dryRun=false){
+      saveSession();
+      const mode=document.getElementById('mode').value;
+      const sendOpt=document.getElementById('sendOption').value;
+      const paymentMethod=document.getElementById('paymentMethod').value;
+      const amount=document.getElementById('amount').value;
+
+      // compute start/end per mode
+      if(mode==='manual'){
+        const date=document.getElementById('manualDate').value;
+        const hour=parseInt(document.getElementById('manualHour').value);
+        if(!date||isNaN(hour)){ log('⛔ Please select both date and hour'); return; }
+        const startUnix=toEpochThailand(date,hour);
+        const endUnix=toEpochThailand(date,hour+1);
+
+        if(sendOpt==='now'){
+          sendPost(startUnix,endUnix,paymentMethod,amount,dryRun);
+        }else{
+          const sendAtStr=sendAtInput.value; if(!sendAtStr){ log('⛔ Please choose "Send at" time'); return; }
+          const target=new Date(sendAtStr);
+          if(target<=new Date()){ log('⛔ "Send at" must be in the future'); return; }
+          nextSendEl.textContent=fmt(target)+' (TH)';
+          scheduleInfo.style.display='block';
+          startCountdown(target);
+          const delay=target.getTime()-Date.now();
+          log(`⏳ Scheduled manual request at ${fmt(target)} (TH)`);
+          setTimeout(()=>{ log('🚀 Sending manual request'); sendPost(startUnix,endUnix,paymentMethod,amount,dryRun); }, delay);
+        }
         return;
       }
 
-      if (mode === 'real') {
-        // Real mode: run exactly at Friday 00:00 TH, booking both slots (19–20 and 20–21) for that Friday.
-        const runAt = getRealRunAtTH();
-        const { slot1, slot2, dateStr } = getUnixTimeFridaySlots();
-        updateRealPanel();
-        const delay = Math.max(0, runAt.getTime() - Date.now());
-        log(`⏳ Scheduled REAL run at ${fmt(runAt)} (TH) for slots ${dateStr} 19:00–21:00`);
-        setTimeout(() => {
-          log('🚀 REAL run triggered – sending both slot requests');
-          // Fire both requests in parallel
-          sendPostRequest(slot1.start, slot1.end, paymentMethod, amount, dryRun);
-          sendPostRequest(slot2.start, slot2.end, paymentMethod, amount, dryRun);
+      // friday booking (next week) – two requests for 19–20 and 20–21
+      const nextFri=getNextWeekFriday();
+      const y=nextFri.getFullYear();const m=String(nextFri.getMonth()+1).padStart(2,'0');const d=String(nextFri.getDate()).padStart(2,'0');
+      const dateStr=`${y}-${m}-${d}`;
+      const slot1={ start: toEpochThailand(dateStr,19), end: toEpochThailand(dateStr,20) };
+      const slot2={ start: toEpochThailand(dateStr,20), end: toEpochThailand(dateStr,21) };
+
+      if(sendOpt==='now'){
+        log(`🚀 Sending Friday booking (next week) now for ${dateStr} 19–21 (2 requests)`);
+        sendPost(slot1.start,slot1.end,paymentMethod,amount,dryRun);
+        sendPost(slot2.start,slot2.end,paymentMethod,amount,dryRun);
+      }else{
+        const sendAtStr=sendAtInput.value; if(!sendAtStr){ log('⛔ Please choose "Send at" time'); return; }
+        const target=new Date(sendAtStr);
+        if(target<=new Date()){ log('⛔ "Send at" must be in the future'); return; }
+        nextSendEl.textContent=fmt(target)+' (TH)';
+        scheduleInfo.style.display='block';
+        startCountdown(target);
+        const delay=target.getTime()-Date.now();
+        log(`⏳ Scheduled Friday booking at ${fmt(target)} (TH) for ${dateStr} 19–21 (2 requests)`);
+        setTimeout(()=>{
+          log('🚀 Sending 2 Friday booking requests');
+          sendPost(slot1.start,slot1.end,paymentMethod,amount,dryRun);
+          sendPost(slot2.start,slot2.end,paymentMethod,amount,dryRun);
         }, delay);
-        return;
-      }
-
-      // Demo friday mode (legacy demo): midnight + test time schedule
-      const testTimeValue = document.getElementById('testTime').value;
-      const [testHour, testMinute] = testTimeValue ? testTimeValue.split(':').map(Number) : [null, null];
-      const slot1 = { start: getUnixTimeNextFriday(19, 0), end: getUnixTimeNextFriday(20, 0) };
-      const slot2 = { start: getUnixTimeNextFriday(20, 0), end: getUnixTimeNextFriday(21, 0) };
-      log('📌 Using demo Friday schedule');
-      const now = new Date();
-      const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0);
-      const msUntilMidnight = midnight.getTime() - now.getTime();
-      log(`⏳ Scheduled slot1 at midnight in ${Math.floor(msUntilMidnight/1000)}s`);
-      setTimeout(() => sendPostRequest(slot1.start, slot1.end, paymentMethod, amount, dryRun), msUntilMidnight);
-      if (testHour !== null && testMinute !== null) {
-        const testDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), testHour, testMinute, 0);
-        if (testDate < now) testDate.setDate(testDate.getDate() + 1);
-        const msUntilTest = testDate.getTime() - now.getTime();
-        log(`⏳ Scheduled slot2 at ${testHour}:${testMinute} in ${Math.floor(msUntilTest/1000)}s`);
-        setTimeout(() => sendPostRequest(slot2.start, slot2.end, paymentMethod, amount, dryRun), msUntilTest);
       }
     }
 
-    function saveSession() {
-      const data = {
-        testTime: document.getElementById('testTime').value,
-        startMode: document.getElementById('startMode').value,
+    // --- Persistence ---
+    function saveSession(){
+      const data={
+        mode: document.getElementById('mode').value,
+        sendOption: document.getElementById('sendOption').value,
+        sendAt: sendAtInput.value,
         manualDate: document.getElementById('manualDate').value,
         manualHour: document.getElementById('manualHour').value,
         paymentMethod: document.getElementById('paymentMethod').value,
-        amount: document.getElementById('amount').value
+        amount: document.getElementById('amount').value,
       };
-      sessionStorage.setItem('apiSchedulerData', JSON.stringify(data));
+      sessionStorage.setItem('apiScheduler_v2', JSON.stringify(data));
     }
 
-    function loadSession() {
-      const saved = sessionStorage.getItem('apiSchedulerData');
-      if (!saved) return;
-      try {
-        const data = JSON.parse(saved);
-        document.getElementById('testTime').value = data.testTime || '';
-        document.getElementById('startMode').value = data.startMode || 'manual';
-        document.getElementById('manualDate').value = data.manualDate || '';
-        document.getElementById('manualHour').value = data.manualHour || '17';
-        document.getElementById('paymentMethod').value = data.paymentMethod || '9';
-        document.getElementById('amount').value = data.amount || '2';
-        onModeChange();
-        log('📦 Loaded previous session data');
-      } catch (e) {
-        log('⚠️ Failed to load session data');
-      }
+    function loadSession(){
+      const saved=sessionStorage.getItem('apiScheduler_v2'); if(!saved) { onModeChange(); onSendOptionChange(); return; }
+      try{
+        const d=JSON.parse(saved);
+        document.getElementById('mode').value=d.mode||'manual';
+        document.getElementById('sendOption').value=d.sendOption||'now';
+        sendAtInput.value=d.sendAt||'';
+        document.getElementById('manualDate').value=d.manualDate||'';
+        document.getElementById('manualHour').value=d.manualHour||'17';
+        document.getElementById('paymentMethod').value=d.paymentMethod||'9';
+        document.getElementById('amount').value=d.amount||'2';
+      }catch(e){ log('⚠️ Failed to load session'); }
+      onModeChange(); onSendOptionChange();
+      updateFridayInfo();
     }
 
     loadSession();
