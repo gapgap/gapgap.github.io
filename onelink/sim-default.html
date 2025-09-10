@@ -1,0 +1,115 @@
+<html><head>
+    <meta content="text/html;charset=utf-8" http-equiv="Content-Type" />
+    <meta content="utf-8" http-equiv="encoding" />
+    <link rel="icon" href="https://cdn.appsflyer.com/af-statics/images/favicon.ico" type="image/x-icon" />
+    <link rel="apple-touch-icon" href="https://cdn.appsflyer.com/af-statics/images/favicon.png" type="image/png" />
+    <link rel="icon" href="https://cdn.appsflyer.com/af-statics/images/favicon.png" type="image/png" />
+</head>
+<body>
+    <iframe id="innerFrame" style="display:none" height="0" width="0" src=""></iframe>
+    <script type="text/javascript">
+      // 8174c2018c53a2d1a62e810214b4ea98
+      // 7140a22c42a8bc34784662dbdd3c3290
+var app_link = 'afbasicapp://mainactivity?af_deeplink=true&af_dp=afbasicapp%3A%2F%2Fmainactivity&af_force_deeplink=true&af_xp=social&campaign=testc&deep_link_sub1=dp1&deep_link_value=testdp&media_source=testpid&shortlink=onurischeme&source_caller=ui';
+var store_link = 'market://details?id=com.appsflyer.onelinksimulator&referrer=af_tranid%3DRLZADohKW80hBWo7WQonVg%26af_dp%3Dafbasicapp%253A%252F%252Fmainactivity%26deep_link_sub1%3Ddp1%26c%3Dtestc%26pid%3Dtestpid%26deep_link_value%3Dtestdp';
+var brand_store_link = 'null';
+var redirect_timeout = '1000';
+var redirect_timeout_int;
+var ifrm = document.getElementById("innerFrame");
+var stop_custom_redirection = false;
+
+function is_visible () {
+    return document.visibilityState === "visible"
+}
+
+function is_branded_store_enabled() {
+    return (brand_store_link !== 'null')
+}
+
+function is_custom_redirection() {
+    return store_link.startsWith("http");
+}
+
+function is_social() {
+    var user_agent_data = navigator.userAgentData;
+    if (user_agent_data === undefined) {
+        var ua = navigator.userAgent;
+        return ((ua.indexOf('FB_IAB') != -1) || (ua.indexOf('Instagram') != -1));
+    }
+    return false;
+}
+
+function back_or_close() {
+    if (window.history.length > 1) {
+        window.history.go(-1); // go back to previous page
+    } else {
+        window.close();
+    }
+}
+
+document.addEventListener('visibilitychange', function () {
+    if (!is_custom_redirection() || is_visible()) {
+        back_or_close();
+    } else {
+        stop_custom_redirection = true;
+    }
+});
+
+function redirect_to_brand_store() {
+    if (!document.hidden) {
+        window.location.href = brand_store_link;
+        setTimeout(redirect_to_default_store, redirect_timeout_int);
+    }
+}
+
+function redirect_to_custom_store() {
+    if (!document.hidden) {
+        if (!stop_custom_redirection) {
+            window.location.replace(store_link);
+        }
+    }
+}
+
+function redirect_to_default_store() {
+    if (!document.hidden) {
+        window.location.href = store_link;
+    }
+}
+
+function redirect_to_store() {
+    if (!document.hidden) {
+        if (is_branded_store_enabled()) {
+            redirect_to_brand_store();
+        } else if (is_custom_redirection()) {
+            redirect_to_custom_store();
+        } else {
+            redirect_to_default_store();
+        }
+    }
+}
+
+try {
+    redirect_timeout_int = parseInt(redirect_timeout);
+    if (isNaN(redirect_timeout_int)) {
+        redirect_timeout_int = 1000;
+    }
+} catch (e) {
+    redirect_timeout_int = 1000;
+}
+
+try {
+    if (is_social()) {
+        redirect_timeout_int = 2200;
+        setTimeout(function () {
+            ifrm.src = app_link;
+        }, 500);
+    } else {
+        ifrm.src = app_link;
+    }
+} catch (e) {
+    window.location.href = store_link;
+}
+setTimeout(redirect_to_store, redirect_timeout_int);
+    </script>
+</body>
+</html>
