@@ -133,7 +133,7 @@
       setDbg(new_link);
     } else {
       // invalid scheme → would redirect
-      // redirect_to_store();
+      redirect_to_store();
     }
 
     // step 4
@@ -141,11 +141,13 @@
     await sleep(1000);
 
     try {
-      // window.location.href = new_link;
+      window.location.href = new_link;
     } catch (e) {
-      // redirect_to_store();
+      redirect_to_store();
     }
-    // await sleep(3000); redirect_to_store();
+    // step 5
+    setDbg(5);
+    await sleep(3000); redirect_to_store();
   });
 </script>
 </body>
