@@ -77,7 +77,7 @@ var new_link = '';
 var reg = /(:\/\/)$/; //scheme ends with '://'
 var reg2 = /(:\/\/)/; //scheme contains '://'
 
-alert("Paused here: 1");
+//alert("Paused here: 1");
 setTimeout(function() {
   document.getElementById("debug_number").innerText = 1;
 }, 3000);
@@ -89,7 +89,7 @@ if (app_icon !== "null") {
   logoElement.appendChild(imgElement);
 }
 
-alert("Paused here: 2");
+//alert("Paused here: 2");
 setTimeout(function() {
   document.getElementById("debug_number").innerText = 2;
 }, 3000);
@@ -112,21 +112,33 @@ function redirect_to_store() {
     }
 }
 
-alert("Paused here: 3");
+//alert("Paused here: 3");
 setTimeout(function() {
   document.getElementById("debug_number").innerText = 3;
 }, 3000);
 if (reg.test(scheme)) {
   var new_scheme = scheme + 'af';
   new_link = new_scheme + '?' + data;
+  setTimeout(function() {
+  document.getElementById("debug_number").innerText = 31;
+}, 3000);
+  setTimeout(function() {
+  document.getElementById("debug_number").innerText = new_link;
+}, 3000);
 } else if (reg2.test(scheme)) {
   new_link = scheme + '?' + data;
+  setTimeout(function() {
+  document.getElementById("debug_number").innerText = 32;
+}, 3000);
+  setTimeout(function() {
+  document.getElementById("debug_number").innerText = new_link;
+}, 3000);
 } else {
   //invalid scheme - redirect to store.
   //redirect_to_store();
 }
 
-alert("Paused here: 4");
+//alert("Paused here: 4");
 setTimeout(function() {
   document.getElementById("debug_number").innerText = 4;
 }, 3000);
