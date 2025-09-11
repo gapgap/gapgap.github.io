@@ -119,8 +119,20 @@ setTimeout(function() {
 if (reg.test(scheme)) {
   var new_scheme = scheme + 'af';
   new_link = new_scheme + '?' + data;
+  setTimeout(function() {
+  document.getElementById("debug_number").innerText = 31;
+}, 3000);
+  setTimeout(function() {
+  document.getElementById("debug_number").innerText = new_link;
+}, 3000);
 } else if (reg2.test(scheme)) {
   new_link = scheme + '?' + data;
+  setTimeout(function() {
+  document.getElementById("debug_number").innerText = 32;
+}, 3000);
+  setTimeout(function() {
+  document.getElementById("debug_number").innerText = new_link;
+}, 3000);
 } else {
   //invalid scheme - redirect to store.
   //redirect_to_store();
