@@ -124,30 +124,36 @@
       const new_scheme = scheme + 'af';
       new_link = new_scheme + '?' + data;
       setDbg(31);
-      await sleep(500);
+      await sleep(1000);
       setDbg(new_link);
     } else if (reg2.test(scheme)) {
       new_link = scheme + '?' + data;
       setDbg(32);
-      await sleep(500);
+      await sleep(1000);
       setDbg(new_link);
     } else {
       // invalid scheme → would redirect
       redirect_to_store();
     }
-
+    await sleep(2000);
     // step 4
     setDbg(4);
     await sleep(1000);
 
     try {
+      setDbg("try");
+      await sleep(1000);
       window.location.href = new_link;
     } catch (e) {
+       setDbg("catch");
+      await sleep(1000);
       redirect_to_store();
     }
     // step 5
+    await sleep(1000);
     setDbg(5);
-    await sleep(3000); redirect_to_store();
+    await sleep(3000); 
+    redirect_to_store();
   });
 </script>
 </body>
