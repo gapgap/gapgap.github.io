@@ -64,90 +64,89 @@
 </div>
 
     <script>
-        // fbc8ba0104d8a02e13703b01707e1a07
-        // bb8419e67561b30c1931197c25307a17
-var store_link = 'itms-apps://apps.apple.com/SG/app/id470460379?ls=1&mt=8';
-var app_link = 'com.starhub.ins.mystarhub.selfhelp://Torpedo/Inbox?af_deeplink=true&af_dp=com.starhub.ins.mystarhub.selfhelp%3A%2F%2FTorpedo%2FInbox&af_force_deeplink=true&af_xp=email&campaign=Inbox&media_source=Email&shortlink=Inbox&source_caller=ui';
-var app_icon = 'https://cdnappicons.appsflyer.com/id470460379.ver-7.15.26.png';
-var app_name = 'StarHub App iOS';
-var parts = app_link.split('?', 2);
-var scheme = parts[0];
-var data = parts[1];
-var new_link = '';
-var reg = /(:\/\/)$/; //scheme ends with '://'
-var reg2 = /(:\/\/)/; //scheme contains '://'
+  // ----- helpers -----
+  const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+  const setDbg = (v) => { const el = document.getElementById('debug_number'); if (el) el.innerText = v; };
 
-//alert("Paused here: 1");
-setTimeout(function() {
-  document.getElementById("debug_number").innerText = 1;
-}, 3000);
-if (app_icon !== "null") {
-  var logoElement = document.getElementById('logo');
-  var imgElement = document.createElement('IMG');
-  imgElement.setAttribute('src', app_icon);
-  imgElement.setAttribute('style', 'width:250px;height:250px;border-radius:20px;');
-  logoElement.appendChild(imgElement);
-}
+  document.addEventListener('DOMContentLoaded', async () => {
+    // test data
+    var store_link = 'itms-apps://apps.apple.com/SG/app/id470460379?ls=1&mt=8';
+    var app_link   = 'com.starhub.ins.mystarhub.selfhelp://Torpedo/Inbox?af_deeplink=true&af_dp=com.starhub.ins.mystarhub.selfhelp%3A%2F%2FTorpedo%2FInbox&af_force_deeplink=true&af_xp=email&campaign=Inbox&media_source=Email&shortlink=Inbox&source_caller=ui';
+    var app_icon   = 'https://cdnappicons.appsflyer.com/id470460379.ver-7.15.26.png';
+    var app_name   = 'StarHub App iOS';
 
-//alert("Paused here: 2");
-setTimeout(function() {
-  document.getElementById("debug_number").innerText = 2;
-}, 3000);
-if (app_name) {
-  var appNameElement = document.getElementById('app_name');
-  appNameElement.innerHTML = app_name;
-}
+    const parts = app_link.split('?', 2);
+    const scheme = parts[0];
+    const data   = parts[1];
+    let new_link = '';
+    const reg  = /(:\/\/)$/;  // ends with ://
+    const reg2 = /(:\/\/)/;   // contains ://
 
-function is_custom_redirection() {
-    return (store_link.startsWith("http") && !store_link.startsWith("https://apps.apple.com"));
-}
+    // step 1
+    setDbg(1);
+    await sleep(1000);
 
-function redirect_to_store() {
-    if (!document.hidden) {
-        if (is_custom_redirection()) {
-            window.location.replace(store_link);
-        } else {
-            window.location.href = store_link;
-        }
+    if (app_icon !== "null") {
+      const logoElement = document.getElementById('logo');
+      const imgElement = document.createElement('img');
+      imgElement.src = app_icon;
+      imgElement.style = 'width:250px;height:250px;border-radius:20px;';
+      logoElement.appendChild(imgElement);
     }
-}
 
-//alert("Paused here: 3");
-setTimeout(function() {
-  document.getElementById("debug_number").innerText = 3;
-}, 3000);
-if (reg.test(scheme)) {
-  var new_scheme = scheme + 'af';
-  new_link = new_scheme + '?' + data;
-  setTimeout(function() {
-  document.getElementById("debug_number").innerText = 31;
-}, 3000);
-  setTimeout(function() {
-  document.getElementById("debug_number").innerText = new_link;
-}, 3000);
-} else if (reg2.test(scheme)) {
-  new_link = scheme + '?' + data;
-  setTimeout(function() {
-  document.getElementById("debug_number").innerText = 32;
-}, 3000);
-  setTimeout(function() {
-  document.getElementById("debug_number").innerText = new_link;
-}, 3000);
-} else {
-  //invalid scheme - redirect to store.
-  //redirect_to_store();
-}
+    // step 2
+    setDbg(2);
+    await sleep(1000);
 
-//alert("Paused here: 4");
-setTimeout(function() {
-  document.getElementById("debug_number").innerText = 4;
-}, 3000);
-try {
-  //window.location.href = new_link;
-} catch (e) {
-  //redirect_to_store();
-}
-//setTimeout(redirect_to_store, 3000);
-    </script>
+    if (app_name) {
+      const appNameElement = document.getElementById('app_name');
+      appNameElement.textContent = app_name;
+    }
+
+    function is_custom_redirection() {
+      return (store_link.startsWith("http") && !store_link.startsWith("https://apps.apple.com"));
+    }
+    function redirect_to_store() {
+      if (!document.hidden) {
+        if (is_custom_redirection()) {
+          window.location.replace(store_link);
+        } else {
+          window.location.href = store_link;
+        }
+      }
+    }
+
+    // step 3
+    setDbg(3);
+    await sleep(1000);
+
+    if (reg.test(scheme)) {
+      const new_scheme = scheme + 'af';
+      new_link = new_scheme + '?' + data;
+      setDbg(31);
+      await sleep(500);
+      setDbg(new_link);
+    } else if (reg2.test(scheme)) {
+      new_link = scheme + '?' + data;
+      setDbg(32);
+      await sleep(500);
+      setDbg(new_link);
+    } else {
+      // invalid scheme → would redirect
+      // redirect_to_store();
+    }
+
+    // step 4
+    setDbg(4);
+    await sleep(1000);
+
+    try {
+      // window.location.href = new_link;
+    } catch (e) {
+      // redirect_to_store();
+    }
+    // await sleep(3000); redirect_to_store();
+  });
+</script>
 </body>
 </html>
