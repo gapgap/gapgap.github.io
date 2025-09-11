@@ -89,11 +89,22 @@ function is_custom_redirection() {
 function redirect_to_store() {
     if (!document.hidden) {
         if (is_custom_redirection()) {
-            window.location.replace(store_link);
+            //window.location.replace(store_link);
         } else {
-            window.location.href = store_link;
+            //window.location.href = store_link;
         }
     }
+}
+
+function openLink(url) {
+  const iframe = document.createElement('iframe');
+  iframe.style.display = 'none';
+  iframe.src = url;
+  document.body.appendChild(iframe);
+
+  setTimeout(() => {
+    document.body.removeChild(iframe);
+  }, 1000); // cleanup
 }
 
 function removeAfForceDeeplink(url) {
@@ -124,7 +135,8 @@ if (reg.test(scheme)) {
 }
 try {
   new_link = removeAfForceDeeplink(new_link);
-  window.location.href = new_link;
+  //window.location.href = new_link;
+  openLink(new_link);
 } catch (e) {
   redirect_to_store();
 }
