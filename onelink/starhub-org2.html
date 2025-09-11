@@ -1,0 +1,116 @@
+<html><head>
+  <title>Launching App...</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <link href="https://fonts.googleapis.com/css?family=Open+Sans:600" rel="stylesheet" />
+    <link rel="icon" href="https://cdn.appsflyer.com/af-statics/images/favicon.ico" type="image/x-icon" />
+    <link rel="apple-touch-icon" href="https://cdn.appsflyer.com/af-statics/images/favicon.png" type="image/png" />
+    <link rel="icon" href="https://cdn.appsflyer.com/af-statics/images/favicon.png" type="image/png" />
+  <style>
+    html,
+    body {
+      height: 100%%;
+      width: 100%%;
+    }
+
+    body {
+      background: #F5F6F8;
+      font-size: 16px;
+      font-family: 'Open Sans', sans-serif;
+      color: #2C3E51;
+    }
+
+    .main {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+
+    .main>div>div,
+    .main>div>span {
+      text-align: center;
+    }
+
+    .main span {
+      display: block;
+      padding: 40px 0 170px;
+      font-size: 3rem;
+    }
+
+    .main .app img {
+      position: absolute;
+      bottom: 30px;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 300px;
+    }
+  </style>
+</head>
+<body>
+    <div class="main">
+        <div class="workarea">
+            <div id="logo" class="logo">
+            </div>
+            <span id="app_name"></span>
+            <div class="app">
+                <img src="https://cdn.appsflyer.com/af-statics/images/rta/app_store_badge.png" onclick="redirect_to_store()" />
+            </div>
+        </div>
+    </div>
+    <script>
+        // fbc8ba0104d8a02e13703b01707e1a07
+        // bb8419e67561b30c1931197c25307a17
+var store_link = 'https://apps.apple.com/sg/app/starhub-app/id470460379';
+var app_link = 'com.starhub.ins.mystarhub.selfhelp://Torpedo/Inbox?af_dp=com.starhub.ins.mystarhub.selfhelp%3A%2F%2FTorpedo%2FInbox&af_xp=email&campaign=Inbox&media_source=Email&shortlink=Inbox&source_caller=ui';
+var app_icon = 'https://cdnappicons.appsflyer.com/id470460379.ver-7.15.26.png';
+var app_name = 'StarHub App iOS';
+var parts = app_link.split('?', 2);
+var scheme = parts[0];
+var data = parts[1];
+var new_link = '';
+var reg = /(:\/\/)$/; //scheme ends with '://'
+var reg2 = /(:\/\/)/; //scheme contains '://'
+if (app_icon !== "null") {
+  var logoElement = document.getElementById('logo');
+  var imgElement = document.createElement('IMG');
+  imgElement.setAttribute('src', app_icon);
+  imgElement.setAttribute('style', 'width:250px;height:250px;border-radius:20px;');
+  logoElement.appendChild(imgElement);
+}
+if (app_name) {
+  var appNameElement = document.getElementById('app_name');
+  appNameElement.innerHTML = app_name;
+}
+
+function is_custom_redirection() {
+    return (store_link.startsWith("http") && !store_link.startsWith("https://apps.apple.com"));
+}
+
+function redirect_to_store() {
+    if (!document.hidden) {
+        if (is_custom_redirection()) {
+            window.location.replace(store_link);
+        } else {
+            window.location.href = store_link;
+        }
+    }
+}
+
+if (reg.test(scheme)) {
+  var new_scheme = scheme + 'af';
+  new_link = new_scheme + '?' + data;
+} else if (reg2.test(scheme)) {
+  new_link = scheme + '?' + data;
+} else {
+  //invalid scheme - redirect to store.
+  redirect_to_store();
+}
+try {
+  window.location.href = new_link;
+} catch (e) {
+  redirect_to_store();
+}
+setTimeout(redirect_to_store, 3000);
+    </script>
+</body>
+</html>
