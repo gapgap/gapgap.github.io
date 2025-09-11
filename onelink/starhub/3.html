@@ -1,0 +1,117 @@
+<html><head>
+  <title>Launching App...</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <link href="https://fonts.googleapis.com/css?family=Open+Sans:600" rel="stylesheet" />
+  <link rel="icon" href="https://cdn.appsflyer.com/af-statics/images/favicon.ico" type="image/x-icon" />
+  <link rel="apple-touch-icon" href="https://cdn.appsflyer.com/af-statics/images/favicon.png" type="image/png" />
+  <link rel="icon" href="https://cdn.appsflyer.com/af-statics/images/favicon.png" type="image/png" />
+  <style>
+    html, body { height: 100%; width: 100%; }
+    body {
+      background: #F5F6F8;
+      font-size: 16px;
+      font-family: 'Open Sans', sans-serif;
+      color: #2C3E51;
+    }
+    .main {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+    .main>div>div,
+    .main>div>span { text-align: center; }
+    .main span {
+      display: block;
+      padding: 40px 0 170px;
+      font-size: 3rem;
+    }
+    .main .app img {
+      position: absolute;
+      bottom: 30px;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 300px;
+    }
+    /* hide the deeplink anchor */
+    #deeplinkAnchor { display: none; }
+  </style>
+</head>
+<body>
+  <div class="main">
+    <div class="workarea">
+      <div id="logo" class="logo"></div>
+      <span id="app_name"></span>
+      <div class="app">
+        <img src="https://cdn.appsflyer.com/af-statics/images/rta/app_store_badge.png" onclick="redirect_to_store()" />
+      </div>
+    </div>
+  </div>
+
+  <!-- hidden anchor for deeplink -->
+  <a id="deeplinkAnchor" href="#">deeplink</a>
+
+  <script>
+    var store_link = 'itms-apps://apps.apple.com/SG/app/id470460379?ls=1&mt=8';
+    var app_link = 'com.starhub.ins.mystarhub.selfhelp://Torpedo/Inbox?af_deeplink=true&af_dp=com.starhub.ins.mystarhub.selfhelp%3A%2F%2FTorpedo%2FInbox&af_force_deeplink=true&af_xp=email&campaign=Inbox&media_source=Email&shortlink=Inbox&source_caller=ui';
+    var app_icon = 'https://cdnappicons.appsflyer.com/id470460379.ver-7.15.26.png';
+    var app_name = 'StarHub App iOS';
+
+    var parts = app_link.split('?', 2);
+    var scheme = parts[0];
+    var data = parts[1];
+    var new_link = '';
+    var reg = /(:\/\/)$/;
+    var reg2 = /(:\/\/)/;
+
+    if (app_icon !== "null") {
+      var logoElement = document.getElementById('logo');
+      var imgElement = document.createElement('IMG');
+      imgElement.src = app_icon;
+      imgElement.style = 'width:250px;height:250px;border-radius:20px;';
+      logoElement.appendChild(imgElement);
+    }
+    if (app_name) {
+      document.getElementById('app_name').innerText = app_name;
+    }
+
+    function is_custom_redirection() {
+      return (store_link.startsWith("http") && !store_link.startsWith("https://apps.apple.com"));
+    }
+
+    function redirect_to_store() {
+      if (!document.hidden) {
+        if (is_custom_redirection()) {
+          window.location.replace(store_link);
+        } else {
+          window.location.assign(store_link);
+        }
+      }
+    }
+
+    // build deeplink
+    if (reg.test(scheme)) {
+      new_link = scheme + 'af?' + data;
+    } else if (reg2.test(scheme)) {
+      new_link = scheme + '?' + data;
+    } else {
+      redirect_to_store();
+    }
+
+    // remove af_force_deeplink param if present
+    try {
+      const u = new URL(new_link);
+      u.searchParams.delete("af_force_deeplink");
+      new_link = u.toString();
+    } catch(e) {}
+
+    // set the hidden anchor href and trigger click
+    var anchor = document.getElementById('deeplinkAnchor');
+    anchor.href = new_link;
+    anchor.click();
+
+    // fallback to store after 3s
+    setTimeout(redirect_to_store, 3000);
+  </script>
+</body>
+</html>
