@@ -290,7 +290,7 @@ function importProfilesFromFile(file) {
 function buildParams(start, end, paymentMethod, amount) {
   return new URLSearchParams({
     token: tokenInput.value || "",
-    device_id: deviceInput.value || "",
+    uuid: deviceInput.value || "",
     card_id: "6364",
     slot_id: "12489",
     contact: "0818855930",
