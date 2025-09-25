@@ -1,0 +1,26 @@
+<html><head>
+    <link rel="icon" href="https://cdn.appsflyer.com/af-statics/images/favicon.ico" type="image/x-icon" />
+    <link rel="apple-touch-icon" href="https://cdn.appsflyer.com/af-statics/images/favicon.png" type="image/png" />
+    <link rel="icon" href="https://cdn.appsflyer.com/af-statics/images/favicon.png" type="image/png" />
+</head>
+<body>
+    <script type="text/javascript">
+      // 3e8308c71544fc0e9cebe1017e037254
+      // fe9071b962c1a35b11cbf3b25fbc1b3b
+var full_package_name = 'com.appsflyer.onelinksimulator';
+var full_package_name_len = full_package_name.length;
+var index_of_last_dash = full_package_name.lastIndexOf('-');
+var package_name = index_of_last_dash < 0 ? full_package_name : full_package_name.slice(0,index_of_last_dash);
+var app_link = 'afbasicapp://mainactivity?af_deeplink=true&af_dp=afbasicapp%3A%2F%2Fmainactivity&campaign=None&deep_link_value=peaches&media_source=Social_instagram&shortlink=10292228&source_caller=ui';
+var store_link = 'market://details?id=com.appsflyer.onelinksimulator&referrer=af_tranid%3DXokSmqBRfJQOopGYA_w9lw%26af_dp%3Dafbasicapp%253A%252F%252Fmainactivity%26pid%3DSocial_instagram%26deep_link_value%3Dpeaches';
+var referrer = 'af_tranid%3DXokSmqBRfJQOopGYA_w9lw%26af_dp%3Dafbasicapp%253A%252F%252Fmainactivity%26pid%3DSocial_instagram%26deep_link_value%3Dpeaches';
+var store_link_encoded = encodeURI(store_link);
+var parts = app_link.split('://');
+var scheme = parts.shift();
+var data   = parts.join('://');
+var appsflyer_click_ts = Date.now();
+var intentUrl = 'intent://' + data + '#Intent;scheme=' + scheme + ';package=' + package_name + ';S.browser_fallback_url=' + store_link_encoded + ";S.market_referrer=" + referrer + ';l.appsflyer_click_ts=' + appsflyer_click_ts + ';end';
+location.href = intentUrl;
+    </script>
+</body>
+</html>
