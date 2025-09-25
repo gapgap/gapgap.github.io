@@ -91,18 +91,18 @@ function redirect_to_store() {
 try {
     redirect_timeout_int = parseInt(redirect_timeout);
     if (isNaN(redirect_timeout_int)) {
-        redirect_timeout_int = 1000;
+        redirect_timeout_int = 5000;
     }
 } catch (e) {
-    redirect_timeout_int = 1000;
+    redirect_timeout_int = 5000;
 }
 
 try {
     if (is_social()) {
-        redirect_timeout_int = 2200;
+        redirect_timeout_int = 4000;
         setTimeout(function () {
             ifrm.src = app_link;
-        }, 500);
+        }, 1000);
     } else {
         ifrm.src = app_link;
     }
