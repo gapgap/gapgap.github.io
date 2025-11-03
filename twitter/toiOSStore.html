@@ -3,16 +3,54 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Redirecting…</title>
-  <meta http-equiv="refresh" content="0;url=https://apps.apple.com/th/app/onelink-simulator/id1550796743" />
-  <script>
-    // JS fallback for browsers that ignore meta refresh
-    window.location.replace("https://apps.apple.com/th/app/onelink-simulator/id1550796743");
-  </script>
+  <title>Open App Store</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      text-align: center;
+      padding-top: 80px;
+      background-color: #fafafa;
+      color: #333;
+    }
+    #countdown {
+      font-weight: bold;
+      color: #007aff;
+    }
+  </style>
 </head>
 <body>
-  <p>Redirecting to the App Store…  
-    <a href="https://apps.apple.com/th/app/onelink-simulator/id1550796743">Click here if you are not redirected.</a>
-  </p>
+  <h2>Opening App Store...</h2>
+  <p>If it doesn't open automatically, we’ll redirect you in <span id="countdown">3</span> seconds.</p>
+
+  <script>
+    const store_link = 'itms-apps://apps.apple.com/app/id1550796743';
+    const web_store_link = 'https://apps.apple.com/app/onelink-simulator/id1550796743';
+    let countdown = 3;
+
+    // Countdown timer
+    const countdownElement = document.getElementById('countdown');
+    const countdownTimer = setInterval(() => {
+      countdown--;
+      countdownElement.textContent = countdown;
+      if (countdown <= 0) clearInterval(countdownTimer);
+    }, 1000);
+
+    // Try to open the App Store deep link
+    const start = Date.now();
+    window.open(store_link, '_self');
+
+    // Fallback after 3 seconds if still on this page
+    const fallbackTimer = setTimeout(() => {
+      const elapsed = Date.now() - start;
+      // If user hasn't left the page, fallback
+      if (elapsed < 3100) {
+        window.open(web_store_link, '_self');
+      }
+    }, 3000);
+
+    // Cancel fallback if user navigated away
+    window.addEventListener('pagehide', () => clearTimeout(fallbackTimer));
+  </script>
 </body>
 </html>
+
