@@ -24,7 +24,8 @@
   <p>If it doesn't open automatically, we’ll redirect you in <span id="countdown">3</span> seconds.</p>
 
   <script>
-    const storeLink = 'market://details?id=com.appsflyer.onelinksimulator&referrer=af_tranid%3DdjoMqI_YjuViqYaBMiOppQ%26c%3Dtest%26pid%3Dtest123';
+    //const storeLink = 'market://details?id=com.appsflyer.onelinksimulator&referrer=af_tranid%3DdjoMqI_YjuViqYaBMiOppQ%26c%3Dtest%26pid%3Dtest123';
+    const intentURL = 'intent://mainactivity?af_deeplink=true&af_dp=afbasicapp%3A%2F%2Fmainactivity&af_force_deeplink=true&af_xp=custom&campaign=rotem_test_universal&deep_link_value=peaches&media_source=chrome&shortlink=sl2phjbm&source_caller=ui#Intent;scheme=afbasicapp;package=com.appsflyer.onelinksimulator;S.browser_fallback_url=market://details?id=com.appsflyer.onelinksimulator&referrer=af_tranid%3DQCDAAevL3s2SVuRNG2o5SA%26af_dp%3Dafbasicapp%253A%252F%252Fmainactivity%26c%3Drotem_test_universal%26pid%3Dchrome%26deep_link_value%3Dpeaches;S.market_referrer=af_tranid%3DQCDAAevL3s2SVuRNG2o5SA%26af_dp%3Dafbasicapp%253A%252F%252Fmainactivity%26c%3Drotem_test_universal%26pid%3Dchrome%26deep_link_value%3Dpeaches;l.appsflyer_click_ts=1690000000000;end'
     const fallbackWebLink = 'https://play.google.com/store/apps/details?id=com.appsflyer.onelinksimulator&referrer=af_tranid%3DdjoMqI_YjuViqYaBMiOppQ%26c%3Dtest%26pid%3Dtest123';
     let countdown = 3;
 
@@ -37,7 +38,7 @@
 
     // Attempt deep link immediately
     const start = Date.now();
-    window.location.href = storeLink;
+    window.location.href = intentURL;
 
     // Fallback to web Play Store if still on page
     const fallbackTimer = setTimeout(() => {
