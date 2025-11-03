@@ -3,16 +3,52 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Redirecting…</title>
-  <meta http-equiv="refresh" content="0;url=https://play.google.com/store/apps/details?id=com.appsflyer.onelinksimulator&hl=en" />
-  <script>
-    // JS fallback for browsers that ignore meta refresh
-    window.location.replace("https://play.google.com/store/apps/details?id=com.appsflyer.onelinksimulator&hl=en");
-  </script>
+  <title>Redirecting to Google Play</title>
+  <link rel="icon" href="https://cdn.appsflyer.com/af-statics/images/favicon.png" type="image/png" />
+  <style>
+    body {
+      font-family: sans-serif;
+      text-align: center;
+      padding-top: 80px;
+      background-color: #f9f9f9;
+      color: #444;
+    }
+    #countdown {
+      font-weight: bold;
+      color: #007aff;
+    }
+  </style>
 </head>
 <body>
-  <p>Redirecting to the App Store…  
-    <a href="https://play.google.com/store/apps/details?id=com.appsflyer.onelinksimulator&hl=en">Click here if you are not redirected.</a>
-  </p>
+  <h2>Opening Google Play...</h2>
+  <p>If it doesn't open automatically, we’ll redirect you in <span id="countdown">3</span> seconds.</p>
+
+  <script>
+    const storeLink = 'market://details?id=com.appsflyer.onelinksimulator&referrer=af_tranid%3DdjoMqI_YjuViqYaBMiOppQ%26c%3Dtest%26pid%3Dtest123';
+    const fallbackWebLink = 'https://play.google.com/store/apps/details?id=com.appsflyer.onelinksimulator&referrer=af_tranid%3DdjoMqI_YjuViqYaBMiOppQ%26c%3Dtest%26pid%3Dtest123';
+    let countdown = 3;
+
+    const countdownElement = document.getElementById('countdown');
+    const countdownTimer = setInterval(() => {
+      countdown--;
+      countdownElement.textContent = countdown;
+      if (countdown <= 0) clearInterval(countdownTimer);
+    }, 1000);
+
+    // Attempt deep link immediately
+    const start = Date.now();
+    window.location.href = storeLink;
+
+    // Fallback to web Play Store if still on page
+    const fallbackTimer = setTimeout(() => {
+      const elapsed = Date.now() - start;
+      if (elapsed < 3100) {
+        window.location.href = fallbackWebLink;
+      }
+    }, 3000);
+
+    // Cancel fallback if user leaves the page
+    window.addEventListener('pagehide', () => clearTimeout(fallbackTimer));
+  </script>
 </body>
 </html>

@@ -37,14 +37,14 @@
 
     // Try to open the App Store deep link
     const start = Date.now();
-    window.open(store_link, '_self');
+    window.location.href = store_link;
 
     // Fallback after 3 seconds if still on this page
     const fallbackTimer = setTimeout(() => {
       const elapsed = Date.now() - start;
       // If user hasn't left the page, fallback
       if (elapsed < 3100) {
-        window.open(web_store_link, '_self');
+        window.location.href = web_store_link;
       }
     }, 3000);
 
@@ -53,4 +53,3 @@
   </script>
 </body>
 </html>
-
