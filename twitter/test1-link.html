@@ -1,0 +1,288 @@
+<html><!DOCTYPE html>
+
+<html lang="en">
+<head>
+    <link rel="icon" href="https://cdn.appsflyer.com/af-statics/images/favicon.ico" type="image/x-icon" />
+    <link rel="apple-touch-icon" href="https://cdn.appsflyer.com/af-statics/images/favicon.png" type="image/png" />
+    <link rel="icon" href="https://cdn.appsflyer.com/af-statics/images/favicon.png" type="image/png" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width,minimum-scale=1.0, maximum-scale=1.0" />
+    <title>LINEマンガ</title>
+    <style type="text/css">
+        body {
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: Helvetica, Arial, Verdana, sans-serif;
+            background-color: #f5f6f8;
+        }
+
+        .container {
+            min-width: 280px;
+            background: white;
+            border: 1px solid #e8e8e8;
+            border-radius: 4px;
+            padding: 30px;
+            margin: 20px;
+        }
+
+        .app-info {
+            display: flex;
+            align-items: center;
+        }
+
+        .logo {
+            margin-right: 15px;
+            height: 60px;
+        }
+
+        .logo img {
+            width: 60px;
+            border: 1px solid #e8e8e8;
+            border-radius: 4px;
+        }
+
+        .placeholder {
+            width: 60px;
+            height: 60px;
+            border: 1px solid #e8e8e8;
+            border-radius: 4px;
+            background: #e8e8e8;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .placeholder-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #47525d;
+        }
+
+        .placeholder-dot + .placeholder-dot {
+            margin-left: 5px;
+        }
+
+        .app-name {
+            font-size: 15px;
+            line-height: 18px;
+            color: #39434e;
+        }
+
+        .button {
+            display: block;
+            padding: 10px;
+            margin-top: 20px;
+            font-size: 15px;
+            text-align: center;
+            text-decoration: none;
+            color: white;
+            font-weight: bold;
+            border-radius: 4px;
+            background: #1b71bd;
+        }
+
+        .button + .button {
+            margin-top: 10px;
+        }
+
+        .hide {
+            display: none
+        }
+
+        .show {
+            display: block;
+        }
+
+        @media screen and (max-device-width: 480px) {
+            body {
+                -webkit-text-size-adjust: none;
+            }
+        }
+    </style>
+    <script type="text/javascript">
+        // 40ab8f0570368e1a4825b3005efe6929
+        // f7128e6ef12e22fedaa65a8c9cea537a
+// LANGUAGES
+var lang = navigator.language;
+var lang_device = {'en-US': 'Go to the app', 'zh-CN': '前往应用', 'zh-TW': '前往應用', 'ja': 'アプリに移動', 'ja-JP': 'アプリに移動'};
+var lang_store = {'en-US': 'Open in App Store?', 'ko-KR': '앱스토어에서 열기', 'ja-JP': 'アプリストアを開きますか?'};
+var store_lang = lang;
+var ask_msg = null;
+var text_on_btn = null;
+
+//  LANDING_PAGE
+init = function () {
+    var store_link = 'itms-apps://apps.apple.com/JP/app/id597088068?ls=1&mt=8';
+    var web_store_link = 'https://apps.apple.com/JP/app/id597088068?mt=8';
+    var app_link = 'linemanga://iab/lp/event/coin_quest202510?in_current_tab=true&af_deeplink=true&af_dp=linemanga%3A%2F%2Fiab%2Flp%2Fevent%2Fcoin_quest202510%3Fin_current_tab%3Dtrue&af_force_deeplink=true&af_lp_src=https%3A%2F%2Fcreatives-cdn.appsflyer.com%2Fcrt-20a47b4d-798f-42b3-ab04-6ec4964656e41&af_reengagement_window=30d&af_xp=social&campaign=251028_lp_coinquest&deep_link_value=app%2Fiab%2Flp%2Fevent%2Fcoin_quest202510%3Fin_current_tab%3Dtrue&is_retargeting=true&media_source=Social_twitter&shortlink=dkyfzi6s&source_caller=ui';
+    var app_icon = 'https://cdnappicons.appsflyer.com/id597088068.82c3df3a-e835-450d-b2ef-3605c1b9faf2.png';
+
+    var parts = app_link.split('?', 2);
+    var scheme = parts[0];
+    var data = parts[1];
+    var new_link = '';
+
+    var reg = /(:\/\/)$/; //scheme ends with '://'
+    var reg2 = /(:\/\/)/; //scheme contains '://'
+
+    var openButton = document.getElementById('open');
+    var mainContainer = document.getElementById('container');
+
+    var redirectFromBtn = null;
+    var systemDialogShown = false;
+    var systemDialogDismissed = false;
+
+    document.addEventListener('visibilitychange', function () {
+        if (window.history.length > 1) {
+            window.history.go(-1); // go back to previous page
+        }
+    });
+
+    if (!lang_device.hasOwnProperty(lang)) {
+        lang = 'en-US';
+    }
+
+    if (!lang_store.hasOwnProperty(store_lang)) {
+        store_lang = 'en-US';
+    }
+
+    text_on_btn = lang_device[lang];
+    openButton.innerText = text_on_btn;
+
+    var encodedIcon = encodeURI(app_icon);
+    var logoElement = document.getElementById("logo");
+    if (encodedIcon.indexOf("http") > -1) {
+        var imgElement = document.createElement("IMG");
+        imgElement.setAttribute("src", encodedIcon);
+        imgElement.setAttribute("src", encodedIcon);
+        imgElement.setAttribute("onclick", "redirect_to_web_store()");
+        logoElement.appendChild(imgElement);
+    } else {
+        var placeholderElement = document.createElement("DIV");
+        placeholderElement.setAttribute("class", "placeholder");
+
+        for (var i = 0; i < 3; i++) {
+            var placeholderDot = document.createElement("DIV");
+            placeholderDot.setAttribute("class", "placeholder-dot");
+            placeholderElement.appendChild(placeholderDot);
+        }
+        logoElement.appendChild(placeholderElement);
+    }
+
+    function redirect_to_store() {
+        if (!document.hidden) {
+            if (is_custom_redirection()) {
+                window.location.replace(store_link);
+            } else {
+                window.location.href = store_link;
+            }
+        }
+    }
+
+    function redirect_to_app() {
+        window.location.href = new_link;
+    }
+
+    function redirect_to_web_store() {
+        if (!document.hidden) {
+            window.location.href = web_store_link;
+        }
+    }
+
+    function is_custom_redirection() {
+        return (store_link.startsWith('http') && !store_link.startsWith('https://apps.apple.com'));
+    }
+
+    function redirect_to_web_or_store_from_btn() {
+        if (is_custom_redirection()) {
+            setTimeout(redirect_to_store, 200);
+        } else {
+            ask_msg = lang_store[store_lang];
+
+            if (window.confirm(ask_msg)) {
+                redirect_to_web_store();
+            } else {
+                mainContainer.className = 'container show';
+            }
+        }
+    }
+
+    function redirect_to_web_or_store(wait_for_dialog = true) {
+        if (is_custom_redirection()) {
+            setTimeout(redirect_to_store, 200);
+        } else {
+            var can_continue = wait_for_dialog ? systemDialogDismissed : true;
+            if (!document.hidden && can_continue) {
+                setTimeout(redirect_to_web_store, 200);
+            }
+        }
+    }
+
+    function valid_scheme(){
+        if (reg.test(scheme)) {
+            var new_scheme = scheme + 'af';
+            new_link = new_scheme + '?' + data;
+        } else if (reg2.test(scheme)) {
+            new_link = scheme + '?' + data;
+        } else {
+            return false
+        }
+        return true
+    }
+
+    function redirect_to_app_and_store() {
+        redirectFromBtn = true;
+        redirect_to_app();
+        setTimeout(function () {
+            redirect_to_web_or_store_from_btn();
+        }, 800);
+    }
+
+    window.addEventListener("blur", function (evt) {
+        if (systemDialogDismissed) {
+            systemDialogDismissed = false;
+            mainContainer.className = 'container show';
+        }
+        systemDialogShown = true;
+    }, false);
+
+    window.addEventListener("focus", function (evt) {
+        if (systemDialogShown) {
+            systemDialogDismissed = true;
+        }
+        setTimeout(function () {
+            redirect_to_web_or_store();
+            mainContainer.className = 'container show';
+        }, 900)
+    }, {once: true});
+
+    try {
+        if (valid_scheme()){
+            redirect_to_app();
+        } else {
+            redirect_to_web_or_store(false);
+        }
+    } catch (e) {
+        redirect_to_web_or_store();
+    }
+    openButton.addEventListener('click', redirect_to_app_and_store);
+};
+    </script>
+</head>
+<body onload="init();">
+<main class="container hide" id="container">
+    <section class="app-info">
+        <div class="logo" id="logo"></div>
+        <div>
+            <div class="app-name">LINEマンガ</div>
+        </div>
+    </section>
+    <!--      <a class="button" id="open" href="#" target="_blank"></a>-->
+    <div class="button" id="open"></div>
+</main>
+</body>
+</html>
+</html>

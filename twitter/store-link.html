@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Open App Store</title>
+</head>
+<body>
+  <p>Redirecting to the App Store… <span id="countdown">3</span> seconds left.</p>
+
+  <script>
+    var store_link = 'itms-apps://apps.apple.com/JP/app/id597088068?ls=1&mt=8';
+    var web_store_link = 'https://apps.apple.com/JP/app/id597088068?mt=8';
+    var countdown = 3;
+
+    // Start countdown display
+    var timer = setInterval(function() {
+      countdown--;
+      document.getElementById('countdown').textContent = countdown;
+      if (countdown <= 0) clearInterval(timer);
+    }, 1000);
+
+    // Attempt to open store link
+    var start = Date.now();
+    window.location = store_link;
+
+    // If user stays on page after 3 seconds, open web link
+    setTimeout(function() {
+      var elapsed = Date.now() - start;
+      // If the page is still open (not redirected), fallback
+      if (elapsed < 3100) {
+        window.location = web_store_link;
+      }
+    }, 3000);
+  </script>
+</body>
+</html>
