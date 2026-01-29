@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Redirecting...</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f4f4f9;
+        }
+        .container {
+            text-align: center;
+            padding: 2rem;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        #counter {
+            font-size: 4rem;
+            font-weight: bold;
+            color: #2a75ff;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Launching Application</h2>
+    <div id="counter">10</div>
+    <p id="status">Please wait...</p>
+</div>
+
+<script>
+    let timeLeft = 10;
+    const counterDisplay = document.getElementById('counter');
+    const statusDisplay = document.getElementById('status');
+    let appWasLaunched = false;
+
+    // Monitor if the user leaves the page (meaning the app likely opened)
+    window.onblur = function() {
+        appWasLaunched = true;
+        statusDisplay.innerText = "App detected. Redirection paused.";
+    };
+
+    const countdown = setInterval(() => {
+        timeLeft--;
+        counterDisplay.innerText = timeLeft;
+
+        // Action at 5 seconds: Try to launch URI
+        if (timeLeft === 5) {
+            statusDisplay.innerText = "Attempting to open test://...";
+            window.location.href = "test://";
+        }
+
+        // Action at 0 seconds: Check if we need to fallback
+        if (timeLeft <= 0) {
+            clearInterval(countdown);
+            
+            if (!appWasLaunched) {
+                statusDisplay.innerText = "App not found. Redirecting to Google...";
+                window.location.href = "https://www.google.com";
+            }
+        }
+    }, 1000);
+</script>
+
+</body>
+</html>
