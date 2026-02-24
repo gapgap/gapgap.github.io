@@ -131,6 +131,78 @@ var reg = /(:\/\/)$/; //scheme ends with '://'
 var reg2 = /(:\/\/)/; //scheme contains '://'
 var timeout = 3000;
 
+function decodeMaybe(value) {
+    if (!value) {
+        return value;
+    }
+    try {
+        return decodeURIComponent(value);
+    } catch (e) {
+        logDebug('decodeMaybe.error', { value: value, error: e.message });
+        return value;
+    }
+}
+
+function overrideFromQueryForOneLinkLikeTest() {
+    // Allow local page to behave like server-generated OneLink payload by reading query params.
+    var p = new URLSearchParams(window.location.search);
+    var hasOverride = false;
+
+    if (p.has('app_link')) {
+        app_link = decodeMaybe(p.get('app_link'));
+        hasOverride = true;
+    }
+    if (p.has('store_link')) {
+        store_link = decodeMaybe(p.get('store_link'));
+        hasOverride = true;
+    }
+    if (p.has('web_store_link')) {
+        web_store_link = decodeMaybe(p.get('web_store_link'));
+        hasOverride = true;
+    }
+    if (p.has('app_name')) {
+        app_name = decodeMaybe(p.get('app_name'));
+        hasOverride = true;
+    }
+    if (p.has('app_icon')) {
+        app_icon = decodeMaybe(p.get('app_icon'));
+        hasOverride = true;
+    }
+    if (p.has('timeout')) {
+        var timeoutFromQuery = parseInt(p.get('timeout'), 10);
+        if (!isNaN(timeoutFromQuery) && timeoutFromQuery > 0) {
+            timeout = timeoutFromQuery;
+            hasOverride = true;
+        }
+    }
+
+    // Convenience: override only af_dp while preserving other query params in app_link.
+    if (p.has('af_dp')) {
+        var split = app_link.split('?', 2);
+        var base = split[0];
+        var query = split[1] || '';
+        var q = new URLSearchParams(query);
+        q.set('af_dp', p.get('af_dp'));
+        app_link = base + '?' + q.toString();
+        hasOverride = true;
+    }
+
+    if (hasOverride) {
+        app_link = normalizeAfDpOnly(app_link);
+        parts = app_link.split('?', 2);
+        scheme = parts[0];
+        data = parts[1];
+    }
+
+    logDebug('onelink_like.overrides', {
+        hasOverride: hasOverride,
+        app_link: app_link,
+        store_link: store_link,
+        web_store_link: web_store_link,
+        timeout: timeout
+    });
+}
+
 function display_app_icon() {
     if (app_icon.indexOf("http") >= 0) {
         var logoElement = document.getElementById('logo');
@@ -238,6 +310,7 @@ function redirect_blank(url) {
 }
 
 window.onload = function () {
+    overrideFromQueryForOneLinkLikeTest();
     logDebug('onload.start', { app_link: app_link, scheme: scheme, isNewChrome: isNewChrome });
     display_app_icon();
     display_app_name();
