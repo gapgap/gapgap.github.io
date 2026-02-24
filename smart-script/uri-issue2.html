@@ -65,6 +65,64 @@ var web_store_link = 'https://apps.apple.com/TH/app/id568388474?mt=8';
 var app_link = 'scbeasy%3A%2F%2Fmutualfunds?af_ad=none&af_channel=none&af_deeplink=true&af_dp=scbeasy%253A%252F%252Fmutualfunds&af_js_web=true&af_ss_gtm_ui=true&af_ss_ui=true&af_ss_ver=2_10_0&campaign=none&is_retargeting=true&media_source=appsflyer&utm_source=appsflyer';
 var app_icon = 'https://cdnappicons.appsflyer.com/id568388474.ver-3.84.png';
 var app_name = 'SCB EASY';
+var STOP_AFTER_MS = 5000;
+var APP_TAG = '[af-debug]';
+var hasStopped = false;
+var hasAttemptedOpen = false;
+
+function logDebug(step, detail) {
+    console.log(APP_TAG + ' ' + step, detail || '');
+}
+
+function stopFlow(reason) {
+    if (hasStopped) {
+        return;
+    }
+    hasStopped = true;
+    logDebug('stopFlow', reason);
+}
+
+// Normalize only af_dp. Other params may intentionally keep their own encoding strategy.
+function normalizeAfDpOnly(rawAppLink) {
+    var parts = rawAppLink.split('?', 2);
+    if (parts.length < 2) {
+        return rawAppLink;
+    }
+
+    var base = parts[0];
+    var query = parts[1];
+    var params = new URLSearchParams(query);
+    var afDp = params.get('af_dp');
+
+    if (!afDp) {
+        return rawAppLink;
+    }
+
+    var normalized = afDp;
+    var hasDoubleEncoding = /%25[0-9a-fA-F]{2}/.test(afDp);
+    logDebug('af_dp.before', afDp);
+
+    try {
+        normalized = decodeURIComponent(normalized);
+    } catch (e) {
+        logDebug('af_dp.decode1.error', e.message);
+    }
+
+    // Decode second time only if af_dp clearly contains double-encoded bytes (%25xx).
+    if (hasDoubleEncoding) {
+        try {
+            normalized = decodeURIComponent(normalized);
+        } catch (e2) {
+            logDebug('af_dp.decode2.error', e2.message);
+        }
+    }
+
+    params.set('af_dp', normalized);
+    logDebug('af_dp.after', normalized);
+    return base + '?' + params.toString();
+}
+
+app_link = normalizeAfDpOnly(app_link);
 var parts = app_link.split('?', 2);
 var scheme = parts[0];
 var data = parts[1];
@@ -99,7 +157,10 @@ function hide_appstore_badge(){
 
 function getChromeVersion() {
     var raw = navigator.userAgent.match(/CriOS\/(\d+)/);
-    return parseInt(raw[1]);
+    if (!raw || !raw[1]) {
+        return 0;
+    }
+    return parseInt(raw[1], 10);
 }
 
 var isNewChrome = getChromeVersion() > 85;
@@ -117,11 +178,21 @@ function is_custom_redirection() {
 }
 
 function redirect_to_store() {
+    if (hasStopped) {
+        logDebug('redirect_to_store.skip', 'stopped');
+        return;
+    }
     if (!document.hidden) {
         if (is_custom_redirection()) {
+            logDebug('redirect_to_store.replace', store_link);
             window.location.replace(store_link);
         } else {
             setTimeout(function () {
+                if (hasStopped) {
+                    logDebug('redirect_to_store.skip.delayed', 'stopped');
+                    return;
+                }
+                logDebug('redirect_to_store.web', web_store_link);
                 window.location.href = web_store_link;
             }, 100)
         }
@@ -132,15 +203,34 @@ function build_app_scheme_link() {
     if (reg.test(scheme)) {
         var new_scheme = scheme + 'af';
         new_link = new_scheme + '?' + data;
+        logDebug('build_app_scheme_link.trailing_slashes', new_link);
     } else if (reg2.test(scheme)) {
         new_link = scheme + '?' + data;
+        logDebug('build_app_scheme_link.valid', new_link);
     } else {
         //invalid scheme - redirect to store.
+        logDebug('build_app_scheme_link.invalid', scheme);
         redirect_to_store();
     }
 }
 
 function redirect_blank(url) {
+    if (hasStopped) {
+        logDebug('redirect_blank.skip', 'stopped');
+        return;
+    }
+    if (hasAttemptedOpen) {
+        logDebug('redirect_blank.skip', 'already attempted');
+        return;
+    }
+    if (!url || !url.trim()) {
+        logDebug('redirect_blank.skip', 'empty url');
+        // Keep flow alive so fallback to store can still happen.
+        logDebug('redirect_blank.note', 'prevent blank tab only; keep store fallback');
+        return;
+    }
+    hasAttemptedOpen = true;
+    logDebug('redirect_blank.open', url);
     var a = document.createElement('a');
     a.target = "_blank";
     a.href = url;
@@ -148,6 +238,7 @@ function redirect_blank(url) {
 }
 
 window.onload = function () {
+    logDebug('onload.start', { app_link: app_link, scheme: scheme, isNewChrome: isNewChrome });
     display_app_icon();
     display_app_name();
     is_custom_redirection() && hide_appstore_badge()
@@ -156,13 +247,16 @@ window.onload = function () {
     if (isNewChrome) {
         setTimeout(redirect_to_store, timeout);
     } else {
+        logDebug('legacy_chrome.store_blank', store_link);
         redirect_blank(store_link);
     }
 };
 setTimeout(function () {
+    stopFlow('safety timer reached');
     if (store_link.indexOf("http") < 0) {
+        logDebug('close_window.non_http_store', store_link);
         window.close()
     }
-}, timeout + 250);
+}, STOP_AFTER_MS);
 </script>
 </body></html>
