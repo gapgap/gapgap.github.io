@@ -225,7 +225,8 @@ function redirect_blank(url) {
     }
     if (!url || !url.trim()) {
         logDebug('redirect_blank.skip', 'empty url');
-        stopFlow('prevent blank tab: empty url');
+        // Keep flow alive so fallback to store can still happen.
+        logDebug('redirect_blank.note', 'prevent blank tab only; keep store fallback');
         return;
     }
     hasAttemptedOpen = true;
