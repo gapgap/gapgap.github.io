@@ -1,0 +1,261 @@
+<html><head>
+    <title>Launching App...</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <link href="https://fonts.googleapis.com/css?family=Open+Sans:600" rel="stylesheet" />
+    <link rel="icon" href="https://cdn.appsflyer.com/af-statics/images/favicon.ico" type="image/x-icon" />
+    <link rel="apple-touch-icon" href="https://cdn.appsflyer.com/af-statics/images/favicon.png" type="image/png" />
+    <link rel="icon" href="https://cdn.appsflyer.com/af-statics/images/favicon.png" type="image/png" />
+    <style>
+        html,
+        body {
+            height: 100%;
+            width: 100%;
+        }
+
+        body {
+            background: #F5F6F8;
+            font-size: 16px;
+            font-family: 'Open Sans', sans-serif;
+            color: #2C3E51;
+            margin: 0;
+        }
+
+        .main {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+
+        .main > div > div,
+        .main > div > span {
+            text-align: center;
+        }
+
+        .main span {
+            display: block;
+            padding: 40px 0 170px;
+            font-size: 3rem;
+        }
+
+        .main .app img {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 300px;
+        }
+    </style>
+</head>
+<body>
+<div class="main">
+    <div class="workarea">
+        <div id="logo" class="logo"></div>
+        <span id="app_name"></span>
+        <div class="app">
+            <img src="https://cdn.appsflyer.com/af-statics/images/rta/app_store_badge.png" onclick="redirect_to_store()" />
+        </div>
+    </div>
+</div>
+<script>
+    // fbc8ba0104d8a02e13703b01707e1a07
+    // f0e3d429dbfd270e33e2f98b6fe9657a
+var store_link = 'itms-apps://apps.apple.com/TH/app/id568388474?ls=1&mt=8';
+var web_store_link = 'https://apps.apple.com/TH/app/id568388474?mt=8';
+var app_link = 'scbeasy%3A%2F%2Fmutualfunds?af_ad=none&af_channel=none&af_deeplink=true&af_dp=scbeasy%253A%252F%252Fmutualfunds&af_js_web=true&af_ss_gtm_ui=true&af_ss_ui=true&af_ss_ver=2_10_0&campaign=none&is_retargeting=true&media_source=appsflyer&utm_source=appsflyer';
+var app_icon = 'https://cdnappicons.appsflyer.com/id568388474.ver-3.84.png';
+var app_name = 'SCB EASY';
+var STOP_AFTER_MS = 5000;
+var APP_TAG = '[af-debug]';
+var hasStopped = false;
+var hasAttemptedOpen = false;
+
+function logDebug(step, detail) {
+    console.log(APP_TAG + ' ' + step, detail || '');
+}
+
+function stopFlow(reason) {
+    if (hasStopped) {
+        return;
+    }
+    hasStopped = true;
+    logDebug('stopFlow', reason);
+}
+
+// Normalize only af_dp. Other params may intentionally keep their own encoding strategy.
+function normalizeAfDpOnly(rawAppLink) {
+    var parts = rawAppLink.split('?', 2);
+    if (parts.length < 2) {
+        return rawAppLink;
+    }
+
+    var base = parts[0];
+    var query = parts[1];
+    var params = new URLSearchParams(query);
+    var afDp = params.get('af_dp');
+
+    if (!afDp) {
+        return rawAppLink;
+    }
+
+    var normalized = afDp;
+    var hasDoubleEncoding = /%25[0-9a-fA-F]{2}/.test(afDp);
+    logDebug('af_dp.before', afDp);
+
+    try {
+        normalized = decodeURIComponent(normalized);
+    } catch (e) {
+        logDebug('af_dp.decode1.error', e.message);
+    }
+
+    // Decode second time only if af_dp clearly contains double-encoded bytes (%25xx).
+    if (hasDoubleEncoding) {
+        try {
+            normalized = decodeURIComponent(normalized);
+        } catch (e2) {
+            logDebug('af_dp.decode2.error', e2.message);
+        }
+    }
+
+    params.set('af_dp', normalized);
+    logDebug('af_dp.after', normalized);
+    return base + '?' + params.toString();
+}
+
+app_link = normalizeAfDpOnly(app_link);
+var parts = app_link.split('?', 2);
+var scheme = parts[0];
+var data = parts[1];
+var new_link = '';
+var reg = /(:\/\/)$/; //scheme ends with '://'
+var reg2 = /(:\/\/)/; //scheme contains '://'
+var timeout = 3000;
+
+function display_app_icon() {
+    if (app_icon.indexOf("http") >= 0) {
+        var logoElement = document.getElementById('logo');
+        var imgElement = document.createElement('IMG');
+        imgElement.setAttribute('src', app_icon);
+        imgElement.setAttribute('style', 'width:250px;height:250px;border-radius:20px;');
+        logoElement.appendChild(imgElement);
+    }
+}
+
+function display_app_name() {
+    if (app_name) {
+        var appNameElement = document.getElementById('app_name');
+        appNameElement.innerHTML = app_name;
+    }
+}
+
+function hide_appstore_badge(){
+    const appstoreElement = document.getElementsByClassName('app')
+    if (appstoreElement && appstoreElement[0]){
+        appstoreElement[0].style.visibility = 'hidden'
+    }
+}
+
+function getChromeVersion() {
+    var raw = navigator.userAgent.match(/CriOS\/(\d+)/);
+    if (!raw || !raw[1]) {
+        return 0;
+    }
+    return parseInt(raw[1], 10);
+}
+
+var isNewChrome = getChromeVersion() > 85;
+
+document.addEventListener('visibilitychange', function () {
+    if (window.history.length > 1) {
+        window.history.go(-1); // go back to previous page
+    } else {
+        window.close();
+    }
+});
+
+function is_custom_redirection() {
+    return (store_link.startsWith("http") && !store_link.startsWith("https://apps.apple.com"));
+}
+
+function redirect_to_store() {
+    if (hasStopped) {
+        logDebug('redirect_to_store.skip', 'stopped');
+        return;
+    }
+    if (!document.hidden) {
+        if (is_custom_redirection()) {
+            logDebug('redirect_to_store.replace', store_link);
+            window.location.replace(store_link);
+        } else {
+            setTimeout(function () {
+                if (hasStopped) {
+                    logDebug('redirect_to_store.skip.delayed', 'stopped');
+                    return;
+                }
+                logDebug('redirect_to_store.web', web_store_link);
+                window.location.href = web_store_link;
+            }, 100)
+        }
+    }
+}
+
+function build_app_scheme_link() {
+    if (reg.test(scheme)) {
+        var new_scheme = scheme + 'af';
+        new_link = new_scheme + '?' + data;
+        logDebug('build_app_scheme_link.trailing_slashes', new_link);
+    } else if (reg2.test(scheme)) {
+        new_link = scheme + '?' + data;
+        logDebug('build_app_scheme_link.valid', new_link);
+    } else {
+        //invalid scheme - redirect to store.
+        logDebug('build_app_scheme_link.invalid', scheme);
+        redirect_to_store();
+    }
+}
+
+function redirect_blank(url) {
+    if (hasStopped) {
+        logDebug('redirect_blank.skip', 'stopped');
+        return;
+    }
+    if (hasAttemptedOpen) {
+        logDebug('redirect_blank.skip', 'already attempted');
+        return;
+    }
+    if (!url || !url.trim()) {
+        logDebug('redirect_blank.skip', 'empty url');
+        stopFlow('prevent blank tab: empty url');
+        return;
+    }
+    hasAttemptedOpen = true;
+    logDebug('redirect_blank.open', url);
+    var a = document.createElement('a');
+    a.target = "_blank";
+    a.href = url;
+    a.click();
+}
+
+window.onload = function () {
+    logDebug('onload.start', { app_link: app_link, scheme: scheme, isNewChrome: isNewChrome });
+    display_app_icon();
+    display_app_name();
+    is_custom_redirection() && hide_appstore_badge()
+    build_app_scheme_link();
+    redirect_blank(new_link);
+    if (isNewChrome) {
+        setTimeout(redirect_to_store, timeout);
+    } else {
+        logDebug('legacy_chrome.store_blank', store_link);
+        redirect_blank(store_link);
+    }
+};
+setTimeout(function () {
+    stopFlow('safety timer reached');
+    if (store_link.indexOf("http") < 0) {
+        logDebug('close_window.non_http_store', store_link);
+        window.close()
+    }
+}, STOP_AFTER_MS);
+</script>
+</body></html>
