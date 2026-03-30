@@ -4,10 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="apple-itunes-app" content="app-id=1192323960">
-    <title>GapGap App Support</title>
+    <title>What is It? Support</title>
     <meta
         name="description"
-        content="Support page for GapGap apps. Contact support, report bugs, ask questions, and request help."
+        content="Support page for What is It?. Contact support, report bugs, ask questions, and request help."
     >
     <style>
         :root {
@@ -53,6 +53,25 @@
         .hero {
             padding: 40px 28px;
             margin-top: 24px;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 18px;
+        }
+
+        .brand img {
+            width: 72px;
+            height: 72px;
+            border-radius: 18px;
+            box-shadow: 0 10px 22px rgba(15, 111, 255, 0.18);
+            flex: 0 0 auto;
+        }
+
+        .brand-text {
+            min-width: 0;
         }
 
         .eyebrow {
@@ -164,17 +183,32 @@
             .grid {
                 grid-template-columns: 1fr;
             }
+
+            .brand {
+                align-items: flex-start;
+            }
+
+            .brand img {
+                width: 60px;
+                height: 60px;
+                border-radius: 15px;
+            }
         }
     </style>
 </head>
 <body>
     <main class="wrap">
         <section class="hero">
-            <span class="eyebrow">Support</span>
-            <h1>Need help with a GapGap app?</h1>
+            <div class="brand">
+                <img src="icon.png" alt="What is It? app icon">
+                <div class="brand-text">
+                    <span class="eyebrow">Support</span>
+                    <h1>Need help with What is It?</h1>
+                </div>
+            </div>
             <p>
                 This page is for users who need help, want to report a problem, or have
-                questions about one of our apps.
+                questions about the What is It? app.
             </p>
             <p>
                 If you contact us, please include your device model, iOS version, app
@@ -202,7 +236,7 @@
                     <li>Email us with your question or support request.</li>
                     <li>Describe what happened and the steps that led to the issue.</li>
                     <li>Attach screenshots if they help explain the problem.</li>
-                    <li>Tell us the app name so we can route your request correctly.</li>
+                    <li>Mention that your request is about What is It?.</li>
                 </ul>
             </article>
 
@@ -237,7 +271,7 @@
         </section>
 
         <footer>
-            GapGap App Support
+            What is It? Support
         </footer>
     </main>
 </body>
