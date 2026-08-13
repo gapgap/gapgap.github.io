@@ -136,7 +136,7 @@
   <main>
     <h1>Villa Market deep-link test</h1>
     <p>
-      This version counts only rendered time while the page is visible and focused.
+      This version counts only rendered animation frames while the page is visible.
       Long gaps between animation frames are not added to the fallback timer.
     </p>
 
@@ -193,8 +193,6 @@
     let previousFrameTime = null;
     let activeElapsedMs = 0;
     let testing = false;
-    let handoffDetected = false;
-    let pageFocused = document.hasFocus();
 
     storeButton.href = STORE_LINK;
 
@@ -219,10 +217,6 @@
       return Number.isFinite(value) && value >= 250 ? value : 1000;
     }
 
-    function pageIsActive() {
-      return document.visibilityState === "visible" && pageFocused;
-    }
-
     function stopCounter() {
       if (animationFrameId !== null) {
         cancelAnimationFrame(animationFrameId);
@@ -239,9 +233,9 @@
     }
 
     function countActiveFrames(frameTime) {
-      if (!testing || handoffDetected) return;
+      if (!testing) return;
 
-      if (pageIsActive()) {
+      if (document.visibilityState === "visible") {
         if (previousFrameTime !== null) {
           // If WebKit paused for a prompt, do not charge the full pause duration.
           activeElapsedMs += Math.min(
@@ -267,17 +261,15 @@
     function startTest() {
       stopCounter();
       testing = true;
-      handoffDetected = false;
       activeElapsedMs = 0;
       previousFrameTime = null;
-      pageFocused = document.hasFocus();
       updateCounter();
 
       log("----------------------------------------");
       log(`user agent: ${navigator.userAgent}`);
       log(
         `starting test; visibility=${document.visibilityState}; ` +
-        `focused=${pageFocused}; threshold=${fallbackThreshold()} ms`
+        `threshold=${fallbackThreshold()} ms`
       );
       setStatus("Requesting permission to open Villa Market");
 
@@ -288,7 +280,6 @@
 
     function resetTest() {
       testing = false;
-      handoffDetected = false;
       activeElapsedMs = 0;
       previousFrameTime = null;
       stopCounter();
@@ -300,29 +291,27 @@
     resetButton.addEventListener("click", resetTest);
 
     window.addEventListener("blur", () => {
-      pageFocused = false;
       previousFrameTime = null;
       log(`blur; visibility=${document.visibilityState}`);
     });
 
     window.addEventListener("focus", () => {
-      pageFocused = true;
       previousFrameTime = null;
       log(`focus; visibility=${document.visibilityState}`);
     });
 
     document.addEventListener("visibilitychange", () => {
-      log(
-        `visibilitychange; visibility=${document.visibilityState}; ` +
-        `focused=${pageFocused}`
-      );
+      log(`visibilitychange; visibility=${document.visibilityState}`);
 
       if (testing && document.hidden) {
-        // A hidden page after the scheme request is treated as a successful handoff.
-        handoffDetected = true;
-        testing = false;
+        // The prompt or external app can hide the page. Pause without assuming
+        // which one occurred; resume only if LINE makes this page visible again.
         stopCounter();
-        setStatus("Page hidden; app handoff detected; fallback cancelled");
+        setStatus("Page hidden; active-time fallback paused");
+      } else if (testing && animationFrameId === null) {
+        previousFrameTime = null;
+        setStatus("Page visible; active-time fallback resumed");
+        animationFrameId = requestAnimationFrame(countActiveFrames);
       }
     });
 
@@ -333,6 +322,11 @@
 
     window.addEventListener("pageshow", (event) => {
       log(`pageshow; persisted=${event.persisted}`);
+      if (testing && animationFrameId === null) {
+        previousFrameTime = null;
+        setStatus("Page shown; active-time fallback resumed");
+        animationFrameId = requestAnimationFrame(countActiveFrames);
+      }
     });
 
     function autoStartTest() {
@@ -340,7 +334,7 @@
       startTest();
     }
 
-    log(`page loaded; visibility=${document.visibilityState}; focused=${pageFocused}`);
+    log(`page loaded; visibility=${document.visibilityState}`);
 
     if (document.readyState === "complete") {
       setTimeout(autoStartTest, 0);
