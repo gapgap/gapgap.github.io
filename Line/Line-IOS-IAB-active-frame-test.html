@@ -136,8 +136,8 @@
   <main>
     <h1>Villa Market deep-link test</h1>
     <p>
-      This version counts only rendered animation frames while the page is visible.
-      Long gaps between animation frames are not added to the fallback timer.
+      This version uses a JavaScript heartbeat while the page is visible. Long gaps
+      caused by LINE's external-app prompt are discarded before fallback begins.
     </p>
 
     <label for="timeout-ms">App Store fallback after active time (milliseconds)</label>
@@ -179,7 +179,8 @@
     const STORE_LINK =
       "itms-apps://apps.apple.com/TH/app/id1613280479?ls=1&mt=8";
 
-    const MAX_FRAME_CHARGE_MS = 50;
+    const HEARTBEAT_INTERVAL_MS = 50;
+    const SUSPENSION_GAP_MS = 250;
 
     const timeoutInput = document.querySelector("#timeout-ms");
     const openButton = document.querySelector("#open-app");
@@ -189,10 +190,11 @@
     const activeTimeElement = document.querySelector("#active-time");
     const eventLog = document.querySelector("#event-log");
 
-    let animationFrameId = null;
-    let previousFrameTime = null;
+    let heartbeatTimerId = null;
+    let previousHeartbeatTime = null;
     let activeElapsedMs = 0;
     let testing = false;
+    let waitingForResume = false;
 
     storeButton.href = STORE_LINK;
 
@@ -218,11 +220,11 @@
     }
 
     function stopCounter() {
-      if (animationFrameId !== null) {
-        cancelAnimationFrame(animationFrameId);
-        animationFrameId = null;
+      if (heartbeatTimerId !== null) {
+        clearTimeout(heartbeatTimerId);
+        heartbeatTimerId = null;
       }
-      previousFrameTime = null;
+      previousHeartbeatTime = null;
     }
 
     function goToStore() {
@@ -232,22 +234,44 @@
       window.location.href = STORE_LINK;
     }
 
-    function countActiveFrames(frameTime) {
+    function scheduleHeartbeat() {
+      if (testing && heartbeatTimerId === null) {
+        heartbeatTimerId = setTimeout(runHeartbeat, HEARTBEAT_INTERVAL_MS);
+      }
+    }
+
+    function runHeartbeat() {
+      heartbeatTimerId = null;
       if (!testing) return;
 
-      if (document.visibilityState === "visible") {
-        if (previousFrameTime !== null) {
-          // If WebKit paused for a prompt, do not charge the full pause duration.
-          activeElapsedMs += Math.min(
-            frameTime - previousFrameTime,
-            MAX_FRAME_CHARGE_MS
-          );
+      const now = performance.now();
+
+      if (document.visibilityState !== "visible") {
+        previousHeartbeatTime = null;
+      } else if (previousHeartbeatTime === null) {
+        previousHeartbeatTime = now;
+        if (waitingForResume) {
+          waitingForResume = false;
+          activeElapsedMs = 0;
+          updateCounter();
+          setStatus("Prompt/page resumed; fallback timer started");
+        }
+      } else {
+        const gap = now - previousHeartbeatTime;
+        previousHeartbeatTime = now;
+
+        if (gap > SUSPENSION_GAP_MS) {
+          // A delayed callback means LINE/WebKit suspended JavaScript for the
+          // permission prompt. Discard all time before and during that pause.
+          activeElapsedMs = 0;
+          waitingForResume = false;
+          updateCounter();
+          setStatus("Prompt pause ended; fallback timer started");
+          log(`discarded suspended heartbeat gap: ${Math.round(gap)} ms`);
+        } else {
+          activeElapsedMs += gap;
           updateCounter();
         }
-        previousFrameTime = frameTime;
-      } else {
-        // Resume from a fresh timestamp when the page becomes active again.
-        previousFrameTime = null;
       }
 
       if (activeElapsedMs >= fallbackThreshold()) {
@@ -255,14 +279,15 @@
         return;
       }
 
-      animationFrameId = requestAnimationFrame(countActiveFrames);
+      scheduleHeartbeat();
     }
 
     function startTest() {
       stopCounter();
       testing = true;
       activeElapsedMs = 0;
-      previousFrameTime = null;
+      waitingForResume = false;
+      previousHeartbeatTime = performance.now();
       updateCounter();
 
       log("----------------------------------------");
@@ -273,15 +298,17 @@
       );
       setStatus("Requesting permission to open Villa Market");
 
-      // Start observing active frames, then request the custom URL scheme.
-      animationFrameId = requestAnimationFrame(countActiveFrames);
+      // Start the heartbeat, then request the custom URL scheme. If LINE pauses
+      // JavaScript for its prompt, the first delayed heartbeat will reset time.
+      scheduleHeartbeat();
       window.location.href = APP_LINK;
     }
 
     function resetTest() {
       testing = false;
       activeElapsedMs = 0;
-      previousFrameTime = null;
+      waitingForResume = false;
+      previousHeartbeatTime = null;
       stopCounter();
       updateCounter();
       setStatus("Ready");
@@ -291,41 +318,46 @@
     resetButton.addEventListener("click", resetTest);
 
     window.addEventListener("blur", () => {
-      previousFrameTime = null;
+      previousHeartbeatTime = null;
+      waitingForResume = true;
       log(`blur; visibility=${document.visibilityState}`);
     });
 
     window.addEventListener("focus", () => {
-      previousFrameTime = null;
+      stopCounter();
+      waitingForResume = true;
       log(`focus; visibility=${document.visibilityState}`);
+      scheduleHeartbeat();
     });
 
     document.addEventListener("visibilitychange", () => {
       log(`visibilitychange; visibility=${document.visibilityState}`);
 
       if (testing && document.hidden) {
-        // The prompt or external app can hide the page. Pause without assuming
-        // which one occurred; resume only if LINE makes this page visible again.
-        stopCounter();
+        previousHeartbeatTime = null;
+        waitingForResume = true;
         setStatus("Page hidden; active-time fallback paused");
-      } else if (testing && animationFrameId === null) {
-        previousFrameTime = null;
+      } else if (testing) {
+        stopCounter();
+        waitingForResume = true;
         setStatus("Page visible; active-time fallback resumed");
-        animationFrameId = requestAnimationFrame(countActiveFrames);
+        scheduleHeartbeat();
       }
     });
 
     window.addEventListener("pagehide", () => {
-      log("pagehide; stopping fallback counter");
-      stopCounter();
+      previousHeartbeatTime = null;
+      waitingForResume = true;
+      log("pagehide; fallback heartbeat waiting for page to resume");
     });
 
     window.addEventListener("pageshow", (event) => {
       log(`pageshow; persisted=${event.persisted}`);
-      if (testing && animationFrameId === null) {
-        previousFrameTime = null;
+      if (testing) {
+        stopCounter();
+        waitingForResume = true;
         setStatus("Page shown; active-time fallback resumed");
-        animationFrameId = requestAnimationFrame(countActiveFrames);
+        scheduleHeartbeat();
       }
     });
 
