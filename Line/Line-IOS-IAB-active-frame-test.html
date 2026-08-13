@@ -361,18 +361,9 @@
       }
     });
 
-    function autoStartTest() {
-      log("window loaded; automatically starting app-open test");
-      startTest();
-    }
-
     log(`page loaded; visibility=${document.visibilityState}`);
-
-    if (document.readyState === "complete") {
-      setTimeout(autoStartTest, 0);
-    } else {
-      window.addEventListener("load", autoStartTest, { once: true });
-    }
+    log("synchronously starting app-open test");
+    startTest();
   </script>
 </body>
 </html>
