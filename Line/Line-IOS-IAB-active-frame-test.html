@@ -335,7 +335,18 @@
       log(`pageshow; persisted=${event.persisted}`);
     });
 
+    function autoStartTest() {
+      log("window loaded; automatically starting app-open test");
+      startTest();
+    }
+
     log(`page loaded; visibility=${document.visibilityState}; focused=${pageFocused}`);
+
+    if (document.readyState === "complete") {
+      setTimeout(autoStartTest, 0);
+    } else {
+      window.addEventListener("load", autoStartTest, { once: true });
+    }
   </script>
 </body>
 </html>
