@@ -1,0 +1,341 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="light">
+  <title>Villa Market Deep-Link Test</title>
+  <style>
+    :root {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: #172033;
+      background: #f3f6fa;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: max(24px, env(safe-area-inset-top)) 18px
+        max(24px, env(safe-area-inset-bottom));
+    }
+
+    main {
+      width: min(100%, 560px);
+      margin: 0 auto;
+      padding: 24px;
+      border: 1px solid #dce3ed;
+      border-radius: 18px;
+      background: #fff;
+      box-shadow: 0 12px 35px rgb(23 32 51 / 10%);
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: 24px;
+    }
+
+    p {
+      line-height: 1.5;
+    }
+
+    label {
+      display: block;
+      margin-top: 20px;
+      font-size: 14px;
+      font-weight: 650;
+    }
+
+    input {
+      width: 100%;
+      margin-top: 7px;
+      padding: 12px;
+      border: 1px solid #bdc8d8;
+      border-radius: 10px;
+      font: inherit;
+      font-size: 16px;
+    }
+
+    .buttons {
+      display: grid;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    button,
+    a.button {
+      display: block;
+      width: 100%;
+      padding: 13px 16px;
+      border: 0;
+      border-radius: 11px;
+      font: inherit;
+      font-weight: 700;
+      text-align: center;
+      text-decoration: none;
+      cursor: pointer;
+    }
+
+    #open-app {
+      color: #fff;
+      background: #1769e0;
+    }
+
+    #reset-test {
+      color: #243047;
+      background: #e9eef6;
+    }
+
+    a.button {
+      color: #243047;
+      background: #f7f9fc;
+      border: 1px solid #cbd5e3;
+    }
+
+    .status {
+      margin-top: 20px;
+      padding: 14px;
+      border-radius: 11px;
+      background: #eef5ff;
+    }
+
+    .status strong,
+    .status span {
+      display: block;
+    }
+
+    #active-time {
+      margin-top: 5px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    pre {
+      min-height: 180px;
+      max-height: 320px;
+      overflow: auto;
+      margin: 10px 0 0;
+      padding: 12px;
+      border-radius: 11px;
+      color: #d9e4ff;
+      background: #111827;
+      font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+
+    .note {
+      margin-bottom: 0;
+      color: #536176;
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Villa Market deep-link test</h1>
+    <p>
+      This version counts only rendered time while the page is visible and focused.
+      Long gaps between animation frames are not added to the fallback timer.
+    </p>
+
+    <label for="timeout-ms">App Store fallback after active time (milliseconds)</label>
+    <input id="timeout-ms" type="number" min="250" step="250" value="1000">
+
+    <div class="buttons">
+      <button id="open-app" type="button">Open Villa Market</button>
+      <button id="reset-test" type="button">Reset test</button>
+      <a class="button" id="store-button" href="#">Open App Store manually</a>
+    </div>
+
+    <div class="status" aria-live="polite">
+      <strong id="status">Ready</strong>
+      <span id="active-time">Active time: 0 ms</span>
+    </div>
+
+    <label for="event-log">Event log</label>
+    <pre id="event-log"></pre>
+
+    <p class="note">
+      For a realistic test, host this file over HTTPS and open its URL inside LINE on
+      an iPhone. A local file URL may behave differently.
+    </p>
+  </main>
+
+  <script>
+    const APP_LINK =
+      "villamarket://open.app/?af_adset=FB_E14Frozen_6Aug26" +
+      "&af_channel=Facebook" +
+      "&af_deeplink=true" +
+      "&af_dp=villamarket%3A%2F%2Fopen.app%2F" +
+      "&af_xp=social" +
+      "&campaign=FB_E14Frozen_6Aug26" +
+      "&deep_link_value=villamarket%3A%2F%2Fopen.app%2Fpromotions%2F8000005152" +
+      "&media_source=Social_facebook" +
+      "&shortlink=ecdnhics" +
+      "&source_caller=ui";
+
+    const STORE_LINK =
+      "itms-apps://apps.apple.com/TH/app/id1613280479?ls=1&mt=8";
+
+    const MAX_FRAME_CHARGE_MS = 50;
+
+    const timeoutInput = document.querySelector("#timeout-ms");
+    const openButton = document.querySelector("#open-app");
+    const resetButton = document.querySelector("#reset-test");
+    const storeButton = document.querySelector("#store-button");
+    const statusElement = document.querySelector("#status");
+    const activeTimeElement = document.querySelector("#active-time");
+    const eventLog = document.querySelector("#event-log");
+
+    let animationFrameId = null;
+    let previousFrameTime = null;
+    let activeElapsedMs = 0;
+    let testing = false;
+    let handoffDetected = false;
+    let pageFocused = document.hasFocus();
+
+    storeButton.href = STORE_LINK;
+
+    function log(message) {
+      const timestamp = new Date().toISOString().slice(11, 23);
+      eventLog.textContent += `[${timestamp}] ${message}\n`;
+      eventLog.scrollTop = eventLog.scrollHeight;
+    }
+
+    function setStatus(message) {
+      statusElement.textContent = message;
+      log(`status: ${message}`);
+    }
+
+    function updateCounter() {
+      activeTimeElement.textContent =
+        `Active time: ${Math.round(activeElapsedMs)} ms`;
+    }
+
+    function fallbackThreshold() {
+      const value = Number(timeoutInput.value);
+      return Number.isFinite(value) && value >= 250 ? value : 1000;
+    }
+
+    function pageIsActive() {
+      return document.visibilityState === "visible" && pageFocused;
+    }
+
+    function stopCounter() {
+      if (animationFrameId !== null) {
+        cancelAnimationFrame(animationFrameId);
+        animationFrameId = null;
+      }
+      previousFrameTime = null;
+    }
+
+    function goToStore() {
+      testing = false;
+      stopCounter();
+      setStatus("Active-time limit reached; opening App Store");
+      window.location.href = STORE_LINK;
+    }
+
+    function countActiveFrames(frameTime) {
+      if (!testing || handoffDetected) return;
+
+      if (pageIsActive()) {
+        if (previousFrameTime !== null) {
+          // If WebKit paused for a prompt, do not charge the full pause duration.
+          activeElapsedMs += Math.min(
+            frameTime - previousFrameTime,
+            MAX_FRAME_CHARGE_MS
+          );
+          updateCounter();
+        }
+        previousFrameTime = frameTime;
+      } else {
+        // Resume from a fresh timestamp when the page becomes active again.
+        previousFrameTime = null;
+      }
+
+      if (activeElapsedMs >= fallbackThreshold()) {
+        goToStore();
+        return;
+      }
+
+      animationFrameId = requestAnimationFrame(countActiveFrames);
+    }
+
+    function startTest() {
+      stopCounter();
+      testing = true;
+      handoffDetected = false;
+      activeElapsedMs = 0;
+      previousFrameTime = null;
+      pageFocused = document.hasFocus();
+      updateCounter();
+
+      log("----------------------------------------");
+      log(`user agent: ${navigator.userAgent}`);
+      log(
+        `starting test; visibility=${document.visibilityState}; ` +
+        `focused=${pageFocused}; threshold=${fallbackThreshold()} ms`
+      );
+      setStatus("Requesting permission to open Villa Market");
+
+      // Start observing active frames, then request the custom URL scheme.
+      animationFrameId = requestAnimationFrame(countActiveFrames);
+      window.location.href = APP_LINK;
+    }
+
+    function resetTest() {
+      testing = false;
+      handoffDetected = false;
+      activeElapsedMs = 0;
+      previousFrameTime = null;
+      stopCounter();
+      updateCounter();
+      setStatus("Ready");
+    }
+
+    openButton.addEventListener("click", startTest);
+    resetButton.addEventListener("click", resetTest);
+
+    window.addEventListener("blur", () => {
+      pageFocused = false;
+      previousFrameTime = null;
+      log(`blur; visibility=${document.visibilityState}`);
+    });
+
+    window.addEventListener("focus", () => {
+      pageFocused = true;
+      previousFrameTime = null;
+      log(`focus; visibility=${document.visibilityState}`);
+    });
+
+    document.addEventListener("visibilitychange", () => {
+      log(
+        `visibilitychange; visibility=${document.visibilityState}; ` +
+        `focused=${pageFocused}`
+      );
+
+      if (testing && document.hidden) {
+        // A hidden page after the scheme request is treated as a successful handoff.
+        handoffDetected = true;
+        testing = false;
+        stopCounter();
+        setStatus("Page hidden; app handoff detected; fallback cancelled");
+      }
+    });
+
+    window.addEventListener("pagehide", () => {
+      log("pagehide; stopping fallback counter");
+      stopCounter();
+    });
+
+    window.addEventListener("pageshow", (event) => {
+      log(`pageshow; persisted=${event.persisted}`);
+    });
+
+    log(`page loaded; visibility=${document.visibilityState}; focused=${pageFocused}`);
+  </script>
+</body>
+</html>
