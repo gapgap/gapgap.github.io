@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Zalo → Green SM launch test</title>
+  <style>
+    :root { color-scheme: light; font-family: system-ui, -apple-system, sans-serif; color: #143633; background: #eff7f5; }
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 24px 16px 48px; }
+    main { max-width: 640px; margin: auto; }
+    h1 { font-size: 28px; letter-spacing: -.7px; margin: 8px 0 12px; }
+    h2 { font-size: 18px; margin-top: 0; }
+    p { line-height: 1.55; }
+    .tag { font-size: 12px; font-weight: 750; text-transform: uppercase; letter-spacing: 1.5px; color: #08766b; }
+    section { background: white; border: 1px solid #d6e6e2; border-radius: 16px; padding: 20px; margin: 18px 0; }
+    .button { display: block; width: 100%; padding: 15px; margin: 12px 0; border: 0; border-radius: 10px; background: #007c70; color: white; font: inherit; font-weight: 650; text-align: center; text-decoration: none; cursor: pointer; }
+    .secondary { background: #e7f2ef; color: #14564d; }
+    a { color: #006d63; }
+    a:focus-visible, button:focus-visible, summary:focus-visible { outline: 3px solid #dd8100; outline-offset: 3px; }
+    small, .hint { color: #4d6762; font-size: 14px; line-height: 1.5; }
+    code, pre { font-family: ui-monospace, monospace; font-size: 12px; overflow-wrap: anywhere; white-space: pre-wrap; }
+    pre { background: #f2f6f5; padding: 12px; border-radius: 8px; }
+    #log { max-height: 300px; overflow: auto; }
+    summary { cursor: pointer; font-weight: 650; }
+    #mode { font-weight: 650; }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="tag">iPhone · In-app browser test</div>
+    <h1>Zalo → Green SM</h1>
+    <p>Send this page link in Zalo and open it inside Zalo. With Green SM installed, try each launch method below.</p>
+    <section>
+      <h2>1. Tap to launch</h2>
+      <p class="hint">Both buttons use the exact <code>greensm://af?…</code> URI from the original OneLink response.</p>
+      <a id="direct" class="button">Open Green SM · direct link</a>
+      <button id="javascript" class="button secondary" type="button">Open Green SM · JavaScript</button>
+      <p class="hint">The first is a normal URI link. The second sets <code>window.location.href</code> during your tap.</p>
+    </section>
+    <section>
+      <h2>2. Launch automatically on load</h2>
+      <p id="mode">Manual mode — no launch attempted on load.</p>
+      <a id="auto" class="button secondary" href="?auto=1">Reload and test automatic launch</a>
+      <p class="hint">For a fresh Zalo test, send the automatic-test URL below in a chat and open it directly:</p>
+      <pre id="auto-url"></pre>
+      <a id="manual" href="?">Return to manual mode</a>
+    </section>
+    <section>
+      <h2>What happened?</h2>
+      <p class="hint">This log shows launch attempts and page visibility changes. A hidden page alone does not prove the app opened. Confirm on your iPhone.</p>
+      <pre id="log" role="log" aria-live="polite"></pre>
+      <p class="hint">No automatic App Store fallback is enabled, so you can observe the URI launch itself.</p>
+      <a href="https://vn.greensm.com/3eCA/vw759b5k">Compare with the original OneLink</a>
+    </section>
+    <section>
+      <details>
+        <summary>URI and browser details</summary>
+        <p>Launch URI</p>
+        <pre id="uri"></pre>
+        <p>Embedded deep link value</p>
+        <pre id="deep-link"></pre>
+        <p>Actual user agent</p>
+        <pre id="ua"></pre>
+      </details>
+    </section>
+    <noscript>JavaScript is disabled. Enable it to run these tests.</noscript>
+  </main>
+  <script>
+    'use strict';
+    const appUri = 'greensm://af?af_deeplink=true&af_dp=greensm%3A%2F%2F&af_force_deeplink=true&af_xp=custom&campaign=260910_ZNS_4W_New+Car&deep_link_value=xanhsm.com%3A%2F%2Fride%3Fservice_type%3DRIDE-TRIP%2CRIDE-ROUTE%26service_group%3D1%2C5&media_source=Growth-to-app&onelink_id=3eCA&shortlink=vw759b5k&source_caller=ui';
+    const logElement = document.getElementById('log');
+    function log(message) {
+      logElement.textContent += new Date().toLocaleTimeString() + ' — ' + message + '\n';
+      logElement.scrollTop = logElement.scrollHeight;
+    }
+    function observeAttempt() {
+      setTimeout(() => {
+        log(document.hidden
+          ? '2-second check: page is hidden; confirm whether Green SM opened.'
+          : '2-second check: page is visible; launch success cannot be determined here.');
+      }, 2000);
+    }
+    function launch(method) {
+      log('Attempt: ' + method);
+      observeAttempt();
+      try {
+        window.location.href = appUri;
+      } catch (error) {
+        log('Navigation error: ' + error.message);
+      }
+    }
+    const autoUrl = new URL(window.location.href);
+    autoUrl.search = '?auto=1';
+    autoUrl.hash = '';
+    const manualUrl = new URL(autoUrl);
+    manualUrl.search = '';
+    document.getElementById('auto').href = autoUrl.href;
+    document.getElementById('auto-url').textContent = autoUrl.href;
+    document.getElementById('manual').href = manualUrl.href;
+    document.getElementById('uri').textContent = appUri;
+    document.getElementById('deep-link').textContent = new URL(appUri).searchParams.get('deep_link_value');
+    document.getElementById('ua').textContent = navigator.userAgent;
+    const direct = document.getElementById('direct');
+    direct.href = appUri;
+    direct.addEventListener('click', () => {
+      log('Attempt: direct URI link tap');
+      observeAttempt();
+    });
+    document.getElementById('javascript').addEventListener('click', () => launch('JavaScript during tap'));
+    document.addEventListener('visibilitychange', () => log('Visibility: ' + document.visibilityState));
+    window.addEventListener('pagehide', () => log('Page hidden / navigating away'));
+    window.addEventListener('pageshow', (event) => log('Page shown' + (event.persisted ? ' (restored from cache)' : '')));
+    window.addEventListener('blur', () => log('Window lost focus'));
+    window.addEventListener('focus', () => log('Window regained focus'));
+    log('Ready. Visibility: ' + document.visibilityState);
+    if (new URL(window.location.href).searchParams.get('auto') === '1') {
+      document.getElementById('mode').textContent = 'Automatic mode — attempting the URI immediately on load.';
+      launch('automatic JavaScript on load');
+    }
+  </script>
+</body>
+</html>
