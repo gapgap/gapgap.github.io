@@ -176,5 +176,3 @@ init = function () {
 
     if (openButton) openButton.addEventListener('click', redirect_to_app_and_store);
 };
-
-    

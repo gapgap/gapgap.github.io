@@ -5,7 +5,10 @@ Captured: 2026-10-02, HTTP 200 for both synthetic Safari profiles.
 Original SHA-256: de04252efab2d48b0f7e1762cab84d63ae2bec9ef5dff09cb81e93466bde0f15
 
 index.html uses the original UI and body onload initialization. Its inline script
-is extracted into bridge.js. original.html is the unmodified captured response.
+is extracted into bridge.js. The patch was derived from the captured response.
+The comparison original.html was subsequently edited outside this patch: its retry
+timeout is now 2000 ms and startup timeout 5000 ms. Those edits are preserved.
+Its timings therefore differ from the captured 800/900 ms values in the fixed page.
 The app URI, Store URL, language handling, icon behavior, scheme validation,
 history behavior and 900 ms startup fallback are retained from the original.
 
@@ -25,7 +28,7 @@ The prior broader changes have been removed to keep this test narrowly scoped.
 
 Test after publishing these local changes on the user's existing GitHub Pages site
 https://gapgap.github.io/iOS-uri/                 second-attempt patch
-https://gapgap.github.io/iOS-uri/original.html    exact original for comparison
+https://gapgap.github.io/iOS-uri/original.html    comparison page (edited timers)
 1. Cancel the first app-open confirmation.
 2. Press Go to the app, then accept Open on the second confirmation.
 3. Verify the app opens without a subsequent Store redirect when departure events
