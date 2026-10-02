@@ -250,7 +250,7 @@ init = function () {
         redirect_to_app();
         setTimeout(function () {
             redirect_to_store();
-        }, 800);
+        }, 2000);
     }
 
     try {
@@ -264,7 +264,7 @@ init = function () {
                 if (!didLeavePage && !document.hidden && !sentToStore) {
                     redirect_to_store();
                 }
-            }, 900);
+            }, 5000);
         } else {
             redirect_to_store();
         }
