@@ -1,0 +1,14 @@
+HTTP/1.1 200 OK
+Content-Type: text/html; charset=utf-8
+Content-Length: 8553
+Connection: keep-alive
+Date: Fri, 02 Oct 2026 05:54:51 GMT
+Server: server
+Cache-Control: no-cache, no-store
+Accept-Ch: Sec-CH-UA-Model, Sec-CH-UA-Platform-Version, Sec-CH-UA-Full-Version-List
+Strict-Transport-Security: max-age=31536000; includeSubDomains
+X-Cache: Miss from cloudfront
+Via: 1.1 0bfe13568f2e58063cbc6214f1dc72e8.cloudfront.net (CloudFront)
+X-Amz-Cf-Pop: SIN3-P1
+X-Amz-Cf-Id: 6l5GKsC0aeUJ27mq1bZ2b9cHemMVf7dgMHJkp8FQUlvMmXlVuDZztg==
+
