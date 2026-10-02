@@ -1,61 +1,121 @@
-<!doctype html>
-<html lang="th">
+<!DOCTYPE html>
+<html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>OneLink Simulator — URI test</title>
-  <style>
-    :root { color-scheme: light; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #263447; background: #f5f6f8; }
-    * { box-sizing: border-box; }
-    body { margin: 0; padding: 32px 20px; }
-    main { max-width: 480px; margin: 8vh auto 0; }
-    .card { padding: 26px; border: 1px solid #e8e8e8; border-radius: 12px; background: white; }
-    .app { display: flex; align-items: center; gap: 16px; }
-    .app img { width: 60px; height: 60px; border-radius: 12px; background: #eee; }
-    h1 { margin: 0; font-size: 19px; }
-    p { font-size: 14px; line-height: 1.65; }
-    .muted { color: #59687a; }
-    button { width: 100%; min-height: 48px; padding: 12px 16px; border-radius: 8px; font: inherit; cursor: pointer; }
-    #open-app { background: #1b71bd; color: white; border: 1px solid #1b71bd; margin-top: 22px; font-weight: 600; }
-    #open-store { margin-top: 10px; color: #1b71bd; background: white; border: 1px solid #b7cde1; }
-    button:focus-visible, a:focus-visible, summary:focus-visible { outline: 3px solid #f0a400; outline-offset: 3px; }
-    .tests { display: flex; gap: 14px; flex-wrap: wrap; font-size: 14px; margin: 20px 0; }
-    a { color: #1b71bd; }
-    details { margin-top: 20px; font-size: 13px; }
-    summary { cursor: pointer; }
-    pre { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 360px; overflow: auto; background: #eaf0f6; padding: 12px; border-radius: 8px; font-size: 11px; }
-    .tools { display: flex; gap: 8px; margin: 10px 0; }
-    .tools button { font-size: 12px; border: 1px solid #b7cde1; background: white; min-height: 36px; }
-  </style>
-  <script src="bridge.js" defer></script>
+    <link rel="icon" href="https://cdn.appsflyer.com/af-statics/images/favicon.ico" type="image/x-icon"/>
+    <link rel="apple-touch-icon" href="https://cdn.appsflyer.com/af-statics/images/favicon.png" type="image/png"/>
+    <link rel="icon" href="https://cdn.appsflyer.com/af-statics/images/favicon.png" type="image/png"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+    <meta
+            name="viewport"
+            content="width=device-width,minimum-scale=1.0, maximum-scale=1.0"
+    />
+    <title>OneLink Simulator</title>
+    <style type="text/css">
+        body {
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: Helvetica, Arial, Verdana, sans-serif;
+            background-color: #f5f6f8;
+        }
+
+        .container {
+            min-width: 280px;
+            background: white;
+            border: 1px solid #e8e8e8;
+            border-radius: 4px;
+            padding: 30px;
+            margin: 20px;
+        }
+
+        .app-info {
+            display: flex;
+            align-items: center;
+        }
+
+        .logo {
+            margin-right: 15px;
+            height: 60px;
+        }
+
+        .logo img {
+            width: 60px;
+            border: 1px solid #e8e8e8;
+            border-radius: 4px;
+        }
+
+        .placeholder {
+            width: 60px;
+            height: 60px;
+            border: 1px solid #e8e8e8;
+            border-radius: 4px;
+            background: #e8e8e8;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .placeholder-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #47525d;
+        }
+
+        .placeholder-dot + .placeholder-dot {
+            margin-left: 5px;
+        }
+
+        .app-name {
+            font-size: 15px;
+            line-height: 18px;
+            color: #39434e;
+        }
+
+        .button {
+            display: block;
+            padding: 10px;
+            margin-top: 20px;
+            font-size: 15px;
+            text-align: center;
+            text-decoration: none;
+            color: white;
+            font-weight: bold;
+            border-radius: 4px;
+            background: #1b71bd;
+        }
+
+        .button + .button {
+            margin-top: 10px;
+        }
+
+        .hide {
+            display: none
+        }
+
+        .show {
+            display: block;
+        }
+
+        @media screen and (max-device-width: 480px) {
+            body {
+                -webkit-text-size-adjust: none;
+            }
+        }
+    </style>
+    <script src="bridge.js" defer></script>
 </head>
 <body>
-<main>
-  <section class="card" aria-label="เปิด OneLink Simulator">
-    <div class="app">
-      <img src="https://cdnappicons.appsflyer.com/id1550796743.ver-1.41.png" alt="" width="60" height="60">
-      <div><h1>OneLink Simulator</h1><p class="muted">ทดสอบการเปิดแอปผ่าน URI scheme</p></div>
-    </div>
-    <p id="status" role="status" aria-live="polite">กำลังเตรียมเปิดแอป…</p>
-    <button id="open-app" type="button">เปิดแอป / ลองอีกครั้ง</button>
-    <button id="open-store" type="button">เปิด App Store</button>
-    <p class="muted">หากแอปไม่เปิดหรือยังไม่ได้ติดตั้ง ให้กด “เปิด App Store” หน้านี้จะไม่พาไป Store อัตโนมัติ</p>
-    <noscript>กรุณาเปิด JavaScript เพื่อทดสอบการเปิดแอป</noscript>
-  </section>
-  <nav class="tests" aria-label="รูปแบบการทดสอบ">
-    <a href="./">ทดสอบเปิดเมื่อโหลดหน้า</a>
-    <a href="?autostart=0">ทดสอบกดปุ่มเท่านั้น</a>
-    <a href="original.html">เทียบหน้าเดิม</a>
-  </nav>
-  <details>
-    <summary>บันทึกการทดสอบ</summary>
-    <p>บันทึก event ของหน้าเว็บ ไม่สามารถอ่านการตอบ dialog ของ iOS หรือยืนยันว่าแอปเปิดสำเร็จได้</p>
-    <div class="tools">
-      <button id="download-log" type="button">ดาวน์โหลด log</button>
-      <button id="clear-log" type="button">ล้าง log</button>
-    </div>
-    <pre id="event-log" aria-label="Event log"></pre>
-  </details>
+<main class="container hide" id="container">
+    <section class="app-info">
+        <div class="logo" id="logo"></div>
+        <div>
+            <div class="app-name">OneLink Simulator</div>
+        </div>
+    </section>
+    <!--      <a class="button" id="open" href="#" target="_blank"></a>-->
+    <div class="button" id="open"></div>
 </main>
 </body>
 </html>
