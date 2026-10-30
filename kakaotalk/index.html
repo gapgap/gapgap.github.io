@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>KakaoTalk · AppsFlyer banner test</title>
+  <script>
+    // Install feedback before the SDK so that early load failures are captured.
+    window.bannerTest = (() => {
+      const states = {}, events = [];
+      let mounted = false, lastBannerState = '', sdkLoaded = false;
+      const isAppsFlyer = url => /^https:\/\/([^/]+\.)?appsflyer(?:sdk)?\.com(?:[/?]|$)/i.test(url || '');
+      function log(message) {
+        events.push(new Date().toISOString() + '  ' + message);
+        if (events.length > 150) events.shift();
+        if (mounted) {
+          const output = document.getElementById('log');
+          output.textContent = events.join('\n');
+          output.scrollTop = output.scrollHeight;
+        }
+        console.info('[Banner test]', message);
+      }
+      function state(id, message, tone = 'pending') {
+        if (states[id] && states[id].message === message) return;
+        states[id] = { message, tone };
+        if (mounted) {
+          const node = document.getElementById(id);
+          node.textContent = message;
+          node.dataset.tone = tone;
+        }
+        log(id + ': ' + message);
+      }
+      function visible(node) {
+        const rect = node.getBoundingClientRect();
+        if (!rect.width || !rect.height || !node.getClientRects().length) return false;
+        for (let ancestor = node; ancestor; ancestor = ancestor.parentElement) {
+          const css = getComputedStyle(ancestor);
+          if (css.display === 'none' || css.visibility === 'hidden' || css.visibility === 'collapse' || Number(css.opacity) === 0) return false;
+        }
+        return rect.bottom > 0 && rect.right > 0 && rect.top < innerHeight && rect.left < innerWidth;
+      }
+      function scan() {
+        if (window.AF_SDK && window.AF_SDK.PLUGINS && window.AF_SDK.PLUGINS.BANNERS) {
+          state('plugin', 'Banner plugin initialized', 'ok');
+        }
+        // The current SDK sets this attribute on the injected banner CTA.
+        // This is DOM evidence, not an AppsFlyer delivery/impression callback.
+        const ctas = Array.from(document.querySelectorAll('[data-af-cta-url]'));
+        const result = ctas.some(visible) ? 'visible' : ctas.length ? 'hidden' : 'absent';
+        if (result !== lastBannerState) {
+          lastBannerState = result;
+          if (result === 'visible') state('banner', 'Banner CTA detected in viewport', 'ok');
+          else if (result === 'hidden') state('banner', 'Banner injected; CTA hidden or outside viewport', 'warn');
+          else state('banner', 'No banner CTA detected yet', 'pending');
+        }
+      }
+      function scriptLoaded(event) {
+        const node = event.target;
+        if (node && node.tagName === 'SCRIPT' && isAppsFlyer(node.src)) {
+          log('Script loaded: ' + node.src);
+          if (/^https:\/\/websdk\./i.test(node.src)) {
+            sdkLoaded = true;
+            state('sdk', 'SDK script loaded', 'ok');
+          }
+          if (mounted) scan();
+        }
+      }
+      window.addEventListener('error', event => {
+        const node = event.target;
+        if (node && node !== window && isAppsFlyer(node.src || node.href)) {
+          log('Resource failed: ' + (node.src || node.href));
+          if (node.tagName === 'SCRIPT' && /^https:\/\/websdk\./i.test(node.src)) state('sdk', 'SDK failed to load — check network or blockers', 'error');
+        } else if (event.message) {
+          log('JavaScript error: ' + event.message + (event.filename ? ' (' + event.filename + ':' + event.lineno + ')' : ''));
+        }
+      }, true);
+      window.addEventListener('unhandledrejection', event => log('Unhandled promise: ' + String(event.reason)));
+      return {
+        state, log, scan,
+        watchSDK() {
+          const script = Array.from(document.scripts).find(node => /^https:\/\/websdk\./i.test(node.src) && isAppsFlyer(node.src));
+          if (script) script.addEventListener('load', scriptLoaded, { once: true });
+        },
+        mount() {
+          mounted = true;
+          for (const [id, value] of Object.entries(states)) {
+            const node = document.getElementById(id);
+            node.textContent = value.message;
+            node.dataset.tone = value.tone;
+          }
+          document.getElementById('log').textContent = events.join('\n');
+          document.getElementById('url').textContent = location.href;
+          document.getElementById('ua').textContent = navigator.userAgent;
+          document.getElementById('browser').textContent = /KAKAOTALK/i.test(navigator.userAgent) ? 'KakaoTalk user agent detected' : 'KakaoTalk not identified in user agent';
+          log('Page: ' + location.href);
+          log('User agent: ' + navigator.userAgent);
+          scan();
+          // Observe only relevant insertion/attribute changes; never observe log text.
+          const observer = new MutationObserver(records => {
+            if (records.some(record => !record.target.closest?.('#diagnostics'))) scan();
+          });
+          observer.observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ['data-af-cta-url', 'style', 'class', 'hidden'] });
+          setInterval(scan, 1000);
+          document.addEventListener('visibilitychange', () => { log('Page visibility: ' + document.visibilityState); scan(); });
+          window.addEventListener('scroll', scan, { passive: true });
+          window.addEventListener('resize', scan);
+          setTimeout(() => {
+            scan();
+            if (!document.querySelector('[data-af-cta-url]')) {
+              state('banner', 'No banner detected after 15 seconds; see checks below', 'warn');
+              log(sdkLoaded ? 'SDK loaded, but banner display is unconfirmed. Check active campaign, URL/device targeting and frequency caps.' : 'SDK load not confirmed. Check network requests, blockers and browser restrictions.');
+            }
+          }, 15000);
+        },
+        report() {
+          return ['AppsFlyer banner test', 'URL: ' + location.href, 'User agent: ' + navigator.userAgent,
+            ...Object.entries(states).map(([id, value]) => id + ': ' + value.message), '', ...events].join('\n');
+        }
+      };
+    })();
+    bannerTest.state('sdk', 'Waiting for SDK script');
+    bannerTest.state('plugin', 'Waiting for banner plugin');
+    bannerTest.state('call', 'Waiting for showBanner call');
+    bannerTest.state('banner', 'Waiting for banner DOM');
+  </script>
+  <script>
+    !function(a,e,f,k,h,g,c,b,d){a.AppsFlyerSdkObject=h;a.AF=a.AF||function(){(a.AF.q=a.AF.q||[]).push([Date.now()].concat(Array.prototype.slice.call(arguments)))};a.AF.id=a.AF.id||c;a.AF.plugins={};b=e.createElement(f);d=e.getElementsByTagName(f)[0];b.async=1;b.src="https://websdk.appsflyer.com?"+(0<g.length?"st\x3d"+g.split(",").sort().join(",")+"\x26":"")+(0<c.length?"af_id\x3d"+c:"");d.parentNode.insertBefore(b,d)}(window,document,"script",0,"AF","pba,banners",{pba:{webAppId:"ce09bf5e-cc5a-433b-84a5-b7c0446a0857"},
+    banners:{key:"e6daecf1-df3e-4888-82a6-731a1c0b3e33"}});AF("banners","showBanner");
+    bannerTest.watchSDK();
+    bannerTest.state('call', 'showBanner called once (queued until SDK ready)', 'ok');
+  </script>
+  <style>
+    :root { color-scheme: light; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #252525; background: #f5f5f0; }
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 36px 18px 56px; }
+    main { max-width: 720px; margin: auto; }
+    .tag { font-size: 12px; font-weight: 750; letter-spacing: 1.6px; text-transform: uppercase; }
+    h1 { font-size: clamp(28px, 6vw, 40px); letter-spacing: -1.3px; margin: 12px 0; }
+    h2 { font-size: 19px; margin: 0 0 14px; }
+    p, li { line-height: 1.6; }
+    .hint { color: #59594e; font-size: 14px; }
+    section { background: white; border: 1px solid #deded3; border-radius: 16px; padding: 22px; margin: 22px 0; }
+    .intro { border-top: 6px solid #fee500; }
+    dl { margin: 0; }
+    .status-row { display: grid; grid-template-columns: 110px 1fr; gap: 12px; padding: 13px 0; border-bottom: 1px solid #eeeeE7; }
+    .status-row:last-child { border: 0; }
+    dt { color: #59594e; } dd { margin: 0; font-weight: 650; overflow-wrap: anywhere; }
+    [data-tone="ok"] { color: #167343; } [data-tone="error"] { color: #b12629; } [data-tone="warn"] { color: #875400; }
+    .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; }
+    button { border: 1px solid #d4d4c7; border-radius: 9px; padding: 12px 15px; background: #f6f6f0; color: #252525; font: inherit; font-weight: 650; cursor: pointer; }
+    button:first-child { background: #fee500; border-color: #e5ce00; }
+    button:focus-visible, summary:focus-visible, a:focus-visible { outline: 3px solid #285fe4; outline-offset: 3px; }
+    pre, code { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 12px; overflow-wrap: anywhere; white-space: pre-wrap; }
+    pre { background: #f6f6f1; border-radius: 8px; padding: 14px; line-height: 1.6; }
+    #log { max-height: 320px; overflow: auto; }
+    summary { cursor: pointer; font-weight: 650; } a { color: #2855a3; }
+    li + li { margin-top: 10px; }
+    #copy-status { min-height: 22px; }
+    @media (max-width: 400px) { section { padding: 18px; } .status-row { grid-template-columns: 86px 1fr; } }
+  </style>
+</head>
+<body>
+  <main id="diagnostics">
+    <div class="tag">KakaoTalk · Mobile browser test</div>
+    <h1>AppsFlyer banner check</h1>
+    <p>Open this page inside KakaoTalk, then compare it with Safari or Chrome on the same phone.</p>
+    <section class="intro">
+      <h2>Live feedback</h2>
+      <dl aria-live="polite">
+        <div class="status-row"><dt>SDK</dt><dd id="sdk">JavaScript has not started</dd></div>
+        <div class="status-row"><dt>Plugin</dt><dd id="plugin">Waiting</dd></div>
+        <div class="status-row"><dt>Request</dt><dd id="call">Waiting</dd></div>
+        <div class="status-row"><dt>Banner</dt><dd id="banner">Waiting</dd></div>
+      </dl>
+      <p class="hint">A loaded SDK and a showBanner call do not prove display. Banner detection checks the SDK’s CTA attribute and its viewport position. Confirm the actual banner visually; this check does not prove an impression was recorded or that the app opens.</p>
+      <div class="actions">
+        <button id="check" type="button">Check now</button>
+        <button id="reload" type="button">Reload page</button>
+        <button id="copy" type="button">Copy report</button>
+      </div>
+      <p id="copy-status" class="hint" role="status"></p>
+    </section>
+    <section>
+      <h2>If the banner does not appear</h2>
+      <ol>
+        <li>Serve this page over HTTPS or a local HTTP server. Use the deployed page URL for KakaoTalk testing.</li>
+        <li>In AppsFlyer, confirm an active banner and that its website URL, path, device and audience rules match this page.</li>
+        <li>Check dismissal and frequency caps. Compare with a fresh browser session if you previously closed the banner.</li>
+        <li>If the SDK fails, inspect browser Network requests for <code>websdk.appsflyer.com</code> and blocked resources. If it loads, inspect the banner creative/configuration request and response.</li>
+        <li>Copy the report from KakaoTalk and from Safari/Chrome to compare. Also note whether you can see the banner and what happens when you tap it.</li>
+      </ol>
+      <p class="hint">Reference: <a href="https://dev.appsflyer.com/hc/docs/dl_smart_banner_v2">AppsFlyer Smart Banner integration guide</a>.</p>
+    </section>
+    <section>
+      <h2>Diagnostic log</h2>
+      <pre id="log" role="log" aria-label="Banner diagnostics"></pre>
+      <details>
+        <summary>Page and browser details</summary>
+        <p id="browser"></p>
+        <p class="hint">Current URL</p><pre id="url"></pre>
+        <p class="hint">User agent</p><pre id="ua"></pre>
+        <p class="hint">PBA web app ID</p><pre>ce09bf5e-cc5a-433b-84a5-b7c0446a0857</pre>
+        <p class="hint">Banner key</p><pre>e6daecf1-df3e-4888-82a6-731a1c0b3e33</pre>
+      </details>
+    </section>
+    <noscript>JavaScript is disabled. Enable JavaScript to load AppsFlyer and run these diagnostics.</noscript>
+  </main>
+  <script>
+    bannerTest.mount();
+    document.getElementById('check').addEventListener('click', () => { bannerTest.scan(); bannerTest.log('Manual check completed.'); });
+    document.getElementById('reload').addEventListener('click', () => location.reload());
+    document.getElementById('copy').addEventListener('click', async () => {
+      const message = document.getElementById('copy-status');
+      try {
+        await navigator.clipboard.writeText(bannerTest.report());
+        message.textContent = 'Report copied.';
+      } catch {
+        // Keep a manual-copy fallback for in-app browsers without Clipboard API access.
+        document.getElementById('log').textContent = bannerTest.report();
+        const selection = window.getSelection();
+        if (selection) {
+          const range = document.createRange();
+          range.selectNodeContents(document.getElementById('log'));
+          selection.removeAllRanges(); selection.addRange(range);
+        }
+        message.textContent = 'Clipboard unavailable. Select and copy the report in the log below.';
+      }
+    });
+  </script>
+</body>
+</html>
