@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AppsFlyer web attribution test</title>
+  <script>
+    // Feedback runs before the SDK and never changes its requests or URL handling.
+    window.webTest = (() => {
+      const lines = [], resources = [];
+      let mounted = false, sdkState = 'Loading SDK…', sdkTone = '', eventCalls = 0;
+      const isEventEndpoint = value => {
+        try {
+          const url = new URL(value);
+          return ['wa.appsflyer.com', 'wa.appsflyersdk.com'].includes(url.hostname) && url.pathname === '/events';
+        } catch { return false; }
+      };
+      function log(message) {
+        lines.push(new Date().toISOString() + '  ' + message);
+        if (lines.length > 100) lines.shift();
+        if (mounted) {
+          const node = document.getElementById('log');
+          node.textContent = lines.join('\n');
+          node.scrollTop = node.scrollHeight;
+        }
+        console.info('[Web attribution test]', message);
+      }
+      function sdk(message, tone) {
+        sdkState = message; sdkTone = tone;
+        log(message);
+        if (mounted) {
+          const node = document.getElementById('sdk-status');
+          node.textContent = message; node.dataset.tone = tone;
+        }
+      }
+      function showResources() {
+        if (!mounted) return;
+        document.getElementById('network-status').textContent = resources.length
+          ? resources.length + ' completed event request(s) observed'
+          : 'No completed event requests observed yet';
+        document.getElementById('requests').textContent = resources.length ? resources.join('\n') : 'Waiting…';
+      }
+      if ('PerformanceObserver' in window) {
+        try {
+          const observer = new PerformanceObserver(list => {
+            for (const entry of list.getEntries()) {
+              if (!isEventEndpoint(entry.name)) continue;
+              const status = entry.responseStatus > 0 ? 'HTTP ' + entry.responseStatus : 'HTTP status not exposed by browser';
+              const text = entry.initiatorType + ' · ' + status + ' · ' + entry.name;
+              resources.push(text);
+              if (resources.length > 30) resources.shift();
+              log('Request completed: ' + text);
+            }
+            showResources();
+          });
+          observer.observe({ type: 'resource', buffered: true });
+        } catch (error) { log('Resource timing unavailable: ' + error.message); }
+      }
+      window.addEventListener('error', event => {
+        if (event.message) log('JavaScript error: ' + event.message);
+        else if (event.target && event.target.src) log('Resource failed: ' + event.target.src);
+      }, true);
+      window.addEventListener('unhandledrejection', event => log('Unhandled promise: ' + String(event.reason)));
+      return {
+        log, sdk,
+        sent(payload) {
+          eventCalls += 1;
+          document.getElementById('event-status').textContent = eventCalls + ' event call(s) submitted to SDK; delivery not confirmed';
+          log('AF("pba", "event", ' + JSON.stringify(payload) + ')');
+        },
+        report() {
+          return ['AppsFlyer web attribution test', 'Web SDK ID: 9b380cbc-6f77-4dfa-b1f3-71e78539c333',
+            'URL visible to page: ' + location.href, 'Referrer visible to page: ' + (document.referrer || '(empty)'),
+            'User agent: ' + navigator.userAgent, 'SDK: ' + sdkState, 'Event calls: ' + eventCalls, '', ...lines].join('\n');
+        },
+        mount() {
+          mounted = true;
+          const status = document.getElementById('sdk-status');
+          status.textContent = sdkState; status.dataset.tone = sdkTone;
+          document.getElementById('log').textContent = lines.join('\n');
+          document.getElementById('page-url').textContent = location.href;
+          document.getElementById('referrer').textContent = document.referrer || '(empty)';
+          document.getElementById('ua').textContent = navigator.userAgent;
+          document.getElementById('query').textContent = Array.from(new URLSearchParams(location.search),
+            ([key, value]) => key + ' = ' + value).join('\n') || '(none visible to this page)';
+          const sample = new URL(location.href);
+          sample.hash = '';
+          sample.search = '?utm_source=webtest&utm_medium=manual&utm_campaign=web_attribution_test';
+          document.getElementById('sample').href = sample.href;
+          document.getElementById('sample-url').textContent = sample.href;
+          showResources();
+          log('Page loaded. The SDK records its visit automatically; no manual page-view event is sent.');
+          if (location.protocol === 'file:') log('Use a hosted HTTPS page for attribution testing.');
+        }
+      };
+    })();
+  </script>
+  <script>
+    // Standard AppsFlyer Web SDK integration, loaded once per page.
+    window.AppsFlyerSdkObject = 'AF';
+    window.AF = window.AF || function() {
+      (window.AF.q = window.AF.q || []).push([Date.now()].concat(Array.prototype.slice.call(arguments)));
+    };
+    window.AF.id = window.AF.id || { pba: { webAppId: '9b380cbc-6f77-4dfa-b1f3-71e78539c333' } };
+    window.AF.plugins = {};
+    var o = document.createElement('script'), p = document.getElementsByTagName('script')[0];
+    o.async = 1;
+    o.src = 'https://websdk.appsflyersdk.com?st=pba&af_id=9b380cbc-6f77-4dfa-b1f3-71e78539c333';
+    o.addEventListener('load', () => webTest.sdk('SDK script loaded', 'ok'));
+    o.addEventListener('error', () => webTest.sdk('SDK failed to load — check network or blockers', 'error'));
+    p.parentNode.insertBefore(o, p);
+  </script>
+  <style>
+    :root { color-scheme: light; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #17302e; background: #f0f6f4; }
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 32px 16px 48px; }
+    main { max-width: 740px; margin: auto; }
+    h1 { font-size: clamp(28px, 6vw, 38px); letter-spacing: -1px; margin: 10px 0; }
+    h2 { font-size: 19px; margin: 0 0 14px; }
+    p, li { line-height: 1.6; }
+    .tag { color: #087469; font-size: 12px; font-weight: 750; text-transform: uppercase; letter-spacing: 1.5px; }
+    section { background: white; border: 1px solid #d5e4df; border-radius: 14px; padding: 22px; margin: 20px 0; }
+    .hint { color: #506963; font-size: 14px; }
+    .status { padding: 12px 0; border-bottom: 1px solid #e7eeeb; overflow-wrap: anywhere; }
+    [data-tone='ok'] { color: #14713f; } [data-tone='error'] { color: #ac2929; }
+    label { display: block; font-weight: 650; margin-bottom: 8px; }
+    input { display: block; width: 100%; padding: 12px; border: 1px solid #b5cbc3; border-radius: 8px; font: inherit; }
+    button, .button { display: inline-block; border: 0; border-radius: 8px; padding: 12px 16px; background: #087469; color: white; font: inherit; font-weight: 650; text-decoration: none; cursor: pointer; }
+    button:disabled { opacity: .55; cursor: wait; }
+    .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
+    .secondary { color: #14564d; background: #e5f0eb; }
+    pre, code { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 12px; overflow-wrap: anywhere; white-space: pre-wrap; }
+    pre { background: #f2f6f4; padding: 13px; border-radius: 8px; line-height: 1.6; }
+    #log, #requests { max-height: 280px; overflow: auto; }
+    a { color: #08695f; }
+    .button { color: white; }
+    button:focus-visible, input:focus-visible, a:focus-visible, summary:focus-visible { outline: 3px solid #da8b14; outline-offset: 3px; }
+    summary { cursor: pointer; font-weight: 650; }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="tag">AppsFlyer · Web attribution</div>
+    <h1>Web SDK test</h1>
+    <p>Test a website visit and a custom event, then check the matching activity in AppsFlyer.</p>
+    <section>
+      <h2>1. SDK and requests</h2>
+      <p class="hint">Web SDK ID: <code>9b380cbc-6f77-4dfa-b1f3-71e78539c333</code></p>
+      <div class="status" id="sdk-status" role="status">Loading SDK…</div>
+      <div class="status" id="network-status" role="status">Waiting for event requests…</div>
+      <p class="hint">The SDK records the visit automatically. A completed request or HTTP 200 confirms transport only. Confirm visit counts, event ingestion and campaign attribution in AppsFlyer’s Web SDK test tool or reports.</p>
+      <details><summary>Observed event requests</summary><pre id="requests">Waiting…</pre></details>
+    </section>
+    <section>
+      <h2>2. Send a test event</h2>
+      <form id="event-form">
+        <label for="event-name">Event name</label>
+        <input id="event-name" name="eventName" value="web_attribution_test" required maxlength="100" pattern="[A-Za-z0-9_]+" title="Use letters, numbers and underscores.">
+        <div class="actions"><button id="send" type="submit" disabled>Send test event</button></div>
+      </form>
+      <p id="event-status" class="hint" role="status">Waiting for the SDK. Each click submits one non-revenue test event.</p>
+      <pre id="payload">No custom event submitted yet.</pre>
+    </section>
+    <section>
+      <h2>3. Test a campaign visit</h2>
+      <p>Copy the sample URL below and open it from an external page or chat to compare browsers. For an end-to-end attribution test, also use your actual campaign tracking link configured to land on this page.</p>
+      <pre id="sample-url"></pre>
+      <a id="sample" class="button" href="?utm_source=webtest&amp;utm_medium=manual&amp;utm_campaign=web_attribution_test">Open sample UTM visit</a>
+      <p class="hint">The button above navigates within this site; it does not reproduce an external entry. Compare the visible parameters and AppsFlyer results in Safari and other browsers. Parameters removed before arrival cannot be recovered by this page.</p>
+      <p class="hint">Confirm that the Web SDK ID belongs to the web app configured for this website domain.</p>
+    </section>
+    <section>
+      <h2>Landing details</h2>
+      <p class="hint">URL visible to this page</p><pre id="page-url"></pre>
+      <p class="hint">Query parameters visible to this page</p><pre id="query"></pre>
+      <p class="hint">Referrer visible to this page</p><pre id="referrer"></pre>
+      <details><summary>Browser user agent</summary><pre id="ua"></pre></details>
+    </section>
+    <section>
+      <h2>Diagnostic log</h2>
+      <pre id="log" role="log" aria-label="Web attribution diagnostic log"></pre>
+      <button id="copy" class="secondary" type="button">Copy report</button>
+      <p id="copy-status" class="hint" role="status"></p>
+      <p class="hint"><a href="https://support.appsflyer.com/hc/en-us/articles/43485611331473-Integrate-AppsFlyer-Web-SDK">AppsFlyer Web SDK integration guide</a></p>
+    </section>
+    <noscript>Enable JavaScript to load the AppsFlyer Web SDK and run this test.</noscript>
+  </main>
+  <script>
+    webTest.mount();
+    let readinessChecks = 0;
+    const checkReady = setInterval(() => {
+      readinessChecks += 1;
+      if (window.AF_SDK && window.AF_SDK.PLUGINS && window.AF_SDK.PLUGINS.PBA) {
+        clearInterval(checkReady);
+        document.getElementById('send').disabled = false;
+        document.getElementById('event-status').textContent = 'Ready. Each click submits one non-revenue test event.';
+        webTest.log('PBA plugin initialized; test event button enabled.');
+      } else if (readinessChecks >= 60) {
+        clearInterval(checkReady);
+        document.getElementById('event-status').textContent = 'SDK initialization not confirmed after 15 seconds. Check requests and reload to retry.';
+        webTest.log('PBA initialization timed out.');
+      }
+    }, 250);
+    document.getElementById('event-form').addEventListener('submit', event => {
+      event.preventDefault();
+      if (document.getElementById('send').disabled) return;
+      const payload = {
+        eventType: 'EVENT',
+        eventName: document.getElementById('event-name').value.trim(),
+        eventValue: { test: true, source: 'webtest' }
+      };
+      try {
+        AF('pba', 'event', payload);
+        document.getElementById('payload').textContent = JSON.stringify(payload, null, 2);
+        webTest.sent(payload);
+      } catch (error) {
+        document.getElementById('event-status').textContent = 'Event call failed: ' + error.message;
+        webTest.log('Event call failed: ' + error.message);
+      }
+    });
+    document.getElementById('copy').addEventListener('click', async () => {
+      const status = document.getElementById('copy-status');
+      try {
+        await navigator.clipboard.writeText(webTest.report());
+        status.textContent = 'Report copied.';
+      } catch {
+        document.getElementById('log').textContent = webTest.report();
+        const selection = window.getSelection();
+        if (selection) {
+          const range = document.createRange(); range.selectNodeContents(document.getElementById('log'));
+          selection.removeAllRanges(); selection.addRange(range);
+        }
+        status.textContent = 'Clipboard unavailable. Select and copy the report from the log.';
+      }
+    });
+  </script>
+</body>
+</html>
