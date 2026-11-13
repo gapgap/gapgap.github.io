@@ -1,0 +1,32 @@
+Naver redirect tests
+
+Destinations:
+  1.html -> https://gabtraining.onelink.me/xfPm/2y3ozi9u
+  2.html -> https://onelink-sim.onelink.me/3pPV/onlyuri
+
+GitHub Pages:
+  Publish the repository through its existing workflow.
+  Open /Naver/ to see both test links, or open /Naver/1.html or /Naver/2.html.
+  These static HTML pages use window.location.replace, with clickable fallback
+  links. Their HTTP status is 200, not 307. GitHub Pages cannot run server.py.
+
+Actual HTTP 307 test:
+  From this folder run:
+    python3 server.py
+  Open http://127.0.0.1:8766/Naver/
+  The server intercepts /Naver/1.html and /Naver/2.html and returns 307 with
+  the corresponding destination in the Location header, without rendering HTML.
+  /1.html, /2.html, /1, /2, /Naver/1, and /Naver/2 work with this server too.
+  Existing query strings on the two destination URLs are not modified.
+
+  Inspect without following the destination:
+    curl -I http://127.0.0.1:8766/Naver/1.html
+    curl -I http://127.0.0.1:8766/Naver/2.html
+
+Phone testing:
+  Run python3 server.py --host 0.0.0.0
+  On a phone on the same Wi-Fi, replace 127.0.0.1 with the computer's LAN IP.
+  Testing from Naver needs a reachable URL opened inside Naver.
+
+This reproduces redirects to the specified OneLinks. The blank-IAB behavior
+still depends on Naver, the installed app, OS, and app-launch method.
