@@ -1,8 +1,8 @@
 Naver redirect tests
 
 Destinations:
-  1.html -> https://gabtraining.onelink.me/xfPm/2y3ozi9u
-  2.html -> https://onelink-sim.onelink.me/3pPV/onlyuri
+  1.html (URI scheme only) -> https://gabtraining.onelink.me/xfPm/2y3ozi9u
+  2.html (AppLinks & URI scheme) -> https://onelink-sim.onelink.me/3pPV/onlyuri
 
 GitHub Pages:
   Publish the repository through its existing workflow.
