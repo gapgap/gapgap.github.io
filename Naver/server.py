@@ -8,8 +8,8 @@ from urllib.parse import urlsplit
 
 ROOT = Path(__file__).resolve().parent
 DESTINATIONS = {
-    "1": "https://gabtraining.onelink.me/xfPm/2y3ozi9u",
-    "2": "https://onelink-sim.onelink.me/3pPV/onlyuri",
+    "1": "https://gabtraining.onelink.me/xfPm/2y3ozi9u?deep_link_value=Apples",
+    "2": "https://onelink-sim.onelink.me/3pPV?af_xp=custom&pid=test123&c=test&af_dp=afbasicapp%3A%2F%2Fmainactivity&deep_link_value=Apples&af_force_deeplink=true",
 }
 
 
