@@ -3,10 +3,12 @@ Naver redirect tests
 Destinations:
   1.html (URI scheme only) -> https://gabtraining.onelink.me/xfPm/2y3ozi9u?deep_link_value=Apples
   2.html (AppLinks & URI scheme) -> https://onelink-sim.onelink.me/3pPV?af_xp=custom&pid=test123&c=test&af_dp=afbasicapp%3A%2F%2Fmainactivity&deep_link_value=Apples&af_force_deeplink=true
+  3.html (kurly app test) -> https://kurly.onelink.me/24aC?af_dp=kurly%3A%2F%2Fproduct%3Fno%3D1000013771&af_r=https%3A%2F%2Fwww.kurly.com%2Fgoods%2F1000013771&af_force_deeplink=true&deep_link_value=kurly%3A%2F%2Fproduct%3Fno%3D1000128262
 
 GitHub Pages:
   Publish the repository through its existing workflow.
-  Open /Naver/ to see both test links, or open /Naver/1.html or /Naver/2.html.
+  Open /Naver/ to see all three test links, or open /Naver/1.html, /Naver/2.html,
+  or /Naver/3.html.
   These static HTML pages use window.location.replace, with clickable fallback
   links. Their HTTP status is 200, not 307. GitHub Pages cannot run server.py.
 
@@ -14,14 +16,17 @@ Actual HTTP 307 test:
   From this folder run:
     python3 server.py
   Open http://127.0.0.1:8766/Naver/
-  The server intercepts /Naver/1.html and /Naver/2.html and returns 307 with
+  The server intercepts /Naver/1.html, /Naver/2.html, and /Naver/3.html and
+  returns 307 with
   the corresponding destination in the Location header, without rendering HTML.
-  /1.html, /2.html, /1, /2, /Naver/1, and /Naver/2 work with this server too.
-  Existing query strings on the two destination URLs are not modified.
+  /1.html, /2.html, /3.html, /1, /2, /3, /Naver/1, /Naver/2, and /Naver/3
+  work with this server too.
+  Existing query strings on the three destination URLs are not modified.
 
   Inspect without following the destination:
     curl -I http://127.0.0.1:8766/Naver/1.html
     curl -I http://127.0.0.1:8766/Naver/2.html
+    curl -I http://127.0.0.1:8766/Naver/3.html
 
 Phone testing:
   Run python3 server.py --host 0.0.0.0

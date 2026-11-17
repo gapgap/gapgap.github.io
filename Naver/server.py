@@ -10,6 +10,7 @@ ROOT = Path(__file__).resolve().parent
 DESTINATIONS = {
     "1": "https://gabtraining.onelink.me/xfPm/2y3ozi9u?deep_link_value=Apples",
     "2": "https://onelink-sim.onelink.me/3pPV?af_xp=custom&pid=test123&c=test&af_dp=afbasicapp%3A%2F%2Fmainactivity&deep_link_value=Apples&af_force_deeplink=true",
+    "3": "https://kurly.onelink.me/24aC?af_dp=kurly%3A%2F%2Fproduct%3Fno%3D1000013771&af_r=https%3A%2F%2Fwww.kurly.com%2Fgoods%2F1000013771&af_force_deeplink=true&deep_link_value=kurly%3A%2F%2Fproduct%3Fno%3D1000128262",
 }
 
 
