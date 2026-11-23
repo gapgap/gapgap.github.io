@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="light dark">
-  <title>Gab iOS · ESP redirect test</title>
+  <title>Gab · iOS and Android ESP tests</title>
   <style>
     :root { font-family: system-ui, sans-serif; color: #e8edf6; background: #101725; }
     * { box-sizing: border-box; }
@@ -21,36 +21,48 @@
   </style>
 </head>
 <body>
-  <p class="eyebrow">GAB IOS / ESP2</p>
-  <h1>Test the ESP redirect.</h1>
-  <p>Compare the same long OneLink directly and behind a real HTTP 302. Inspect the SDK callback before any app decoding.</p>
+  <p class="eyebrow">GAB / ESP2</p>
+  <h1>Compare direct and ESP links.</h1>
+  <p>This GitHub Pages site launches the test apps. A hosted ESP test needs a real HTTPS endpoint that returns HTTP 302 to the corresponding OneLink.</p>
   <section>
-    <h2>Open with a Universal Link</h2>
-    <p>After publishing the site and its AASA file, reinstall the updated debug app. Send this link to yourself in Notes or Messages, then tap it to open the fake ESP test:</p>
-    <p><a href="https://gapgap.github.io/esp2/">https://gapgap.github.io/esp2/</a></p>
-    <p class="note">Tapping from Notes or Messages tests the website-to-app association. Safari may keep links to the same domain in the browser, and typing a URL into its address bar opens the website.</p>
-    <p class="note">The Universal Link launches the harness. The SDK then resolves the real HTTP 302 running locally inside the app.</p>
+    <h2>Hosted ESP and Local 302 are separate</h2>
+    <p><strong>Hosted ESP</strong> passes the configured HTTPS tracking URL to the SDK. The default URLs on this GitHub Pages host do not provide a custom HTTP redirect, so the hosted test will be inconclusive until you supply a real ESP tracking URL in the app.</p>
+    <p><strong>Local 302</strong> is an optional SDK isolation test. It deliberately uses a loopback HTTP server inside the debug app. It does not test a redirect from this website.</p>
   </section>
   <section>
-    <h2>Run in the debug sample app</h2>
-    <p>Install the updated GabTest debug build and keep the SDK enabled. These links launch its test harness; the fake ESP runs locally inside the app.</p>
-    <a class="button secondary" href="gabgab://esp2/direct">Run direct control in app</a>
-    <a class="button" href="gabgab://esp2/wrapped">Run fake ESP in app</a>
-    <p class="note">You can also open GabTest, tap <strong>ESP</strong>, then run both tests and copy the results.</p>
-  </section>
-  <section>
-    <h2>OneLink under test</h2>
+    <h2>iOS test app</h2>
     <p><code>https://gabios.onelink.me/9hkm?pid=test&amp;deep_link_value=https%3A%2F%2Fexample.com%2Ftest</code></p>
-    <a class="button secondary" href="https://gabios.onelink.me/9hkm?pid=test&amp;deep_link_value=https%3A%2F%2Fexample.com%2Ftest">Open original OneLink</a>
-    <p>Expected callback: <code>https://example.com/test</code><br>If the bug reproduces: <code>https%3A%2F%2Fexample.com%2Ftest</code></p>
+    <a class="button secondary" href="gabgab://esp2/direct">iOS · Direct control</a>
+    <a class="button" href="gabgab://esp2/wrapped">iOS · Hosted ESP</a>
+    <a class="button secondary" href="gabgab://esp2/local">iOS · Local 302 (SDK isolation)</a>
+    <p><a href="https://gabios.onelink.me/9hkm?pid=test&amp;deep_link_value=https%3A%2F%2Fexample.com%2Ftest">Open original iOS OneLink</a></p>
   </section>
   <section>
-    <h2>Standalone redirect server</h2>
-    <p>The companion <code>server.py</code> serves <code>/esp2/redirect</code> with HTTP 302 and the exact OneLink above in its <code>Location</code> header.</p>
-    <pre>python3 server.py
-curl -I http://127.0.0.1:8787/esp2/redirect</pre>
-    <p class="note">GitHub Pages serves this page as static HTML. It cannot run the redirect server. The in-app tests work without hosting that server. Stop the in-app listener before starting the standalone server on the same simulator/Mac port.</p>
+    <h2>Android test app</h2>
+    <p><code>https://lapat123.onelink.me/YJr3?pid=test&amp;deep_link_value=https%3A%2F%2Fexample.com%2Ftest</code></p>
+    <a class="button secondary" href="gabgab://esp2/android/direct">Android · Direct control</a>
+    <a class="button" href="gabgab://esp2/android/wrapped">Android · Hosted ESP</a>
+    <a class="button secondary" href="gabgab://esp2/android/local">Android · Local 302 (SDK isolation)</a>
+    <p><a href="https://lapat123.onelink.me/YJr3?pid=test&amp;deep_link_value=https%3A%2F%2Fexample.com%2Ftest">Open original Android OneLink</a></p>
   </section>
-  <p class="note">The repository includes AASA entries for /esp2 and /esp2/* and the app includes the gapgap.github.io Associated Domain. A full hosted ESP test still needs an HTTP redirect endpoint; GitHub Pages serves static HTML.</p>
+  <section>
+    <h2>Universal Links and Android App Links</h2>
+    <p>Publish the root <code>.well-known/apple-app-site-association</code> and <code>.well-known/assetlinks.json</code> files together with this folder, then install the updated app.</p>
+    <p>Send <a href="https://gapgap.github.io/esp2/">https://gapgap.github.io/esp2/</a> to Notes or a messaging app and tap it to open the app's test screen. Association opens the app; it does not create an HTTP redirect.</p>
+    <p class="note">Safari address-bar navigation opens the website, and same-domain links may stay in Safari. Use the explicit platform launch buttons above as fallbacks.</p>
+  </section>
+  <section>
+    <h2>Read the raw result</h2>
+    <p>Expected: <code>https://example.com/test</code><br>Extra encoding layer: <code>https%3A%2F%2Fexample.com%2Ftest</code></p>
+    <p>The report shows <strong>SDK input</strong> separately from the link that launched the test screen. A localhost or 127.0.0.1 input is only expected after selecting Local 302.</p>
+  </section>
+  <section>
+    <h2>Optional standalone redirect server</h2>
+    <p>The companion Python server can serve both real redirects on a server you control. GitHub Pages cannot execute it.</p>
+    <pre>python3 server.py
+curl -I http://127.0.0.1:8787/esp2/redirect
+curl -I http://127.0.0.1:8787/esp2/android/redirect</pre>
+    <p class="note">Stop the in-app iOS simulator listener before binding the same Mac port, or use <code>--port 8788</code>.</p>
+  </section>
 </body>
 </html>

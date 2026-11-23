@@ -1,80 +1,75 @@
-ESP2: Gab iOS OneLink redirect reproduction
+ESP2: iOS and Android test setup
 
-Exact redirect Location:
+OneLinks (raw values preserved):
+iOS:
 https://gabios.onelink.me/9hkm?pid=test&deep_link_value=https%3A%2F%2Fexample.com%2Ftest
+Android:
+https://lapat123.onelink.me/YJr3?pid=test&deep_link_value=https%3A%2F%2Fexample.com%2Ftest
 
-Quickest test (no external backend or AASA change):
-1. Build and run basic_app.xcworkspace using Debug. Leave the SDK enabled.
-2. Tap ESP in the main app's SDK controls.
-3. Tap 1. Direct OneLink; wait for CONTROL PASSED.
-4. Tap 2. Fake ESP; inspect and copy the result.
+Three explicitly separate controls in each debug app:
+1. Direct OneLink: SDK receives the original OneLink.
+2. Hosted ESP: SDK receives the HTTPS tracking URL entered in the app.
+3. Local 302: SDK receives localhost/127.0.0.1, and an in-app HTTP server returns
+   a real 302 with that platform's exact OneLink in Location.
 
-The debug app starts a real TCP/HTTP listener bound to IPv4 loopback, port 8787.
-It returns HTTP 302 for /esp2/redirect with the exact Location above.
-The SDK receives http://localhost:8787/esp2/redirect via continue(userActivity),
-resolves the redirect itself, and calls didResolveDeepLink.
-The harness does not encode/decode the OneLink or deep_link_value.
+GitHub Pages limitation:
+GitHub Pages can publish the HTML launch page and association JSON files.
+It cannot run Python or return these custom HTTP 302 responses.
+The defaults https://gapgap.github.io/esp2/redirect (iOS) and
+https://gapgap.github.io/esp2/android/redirect (Android) are not working hosted
+ESP endpoints on GitHub Pages. Expect INCONCLUSIVE until a real HTTPS ESP
+tracking URL is entered. There is no automatic fallback to localhost.
 
-Confirmed reproduction requires:
-- The local server received a request and returned 302.
-- original_link identifies the local fake ESP.
-- link identifies gabios.onelink.me.
-- isDeferred is false.
-- Raw deeplinkValue equals https%3A%2F%2Fexample.com%2Ftest.
-The screen marks other incomplete/error cases INCONCLUSIVE.
+Association setup:
+- iOS: applinks:gapgap.github.io, app T7KY8FMWKD.com.lapat.mytest101,
+  AASA paths /esp2 and /esp2/*; prior OneLink and App Clip entries preserved.
+- Android: com.example.lapatgab, autoVerify filters for gapgap.github.io,
+  /esp2 and /esp2/*; existing lapat123.onelink.me filter preserved.
+- assetlinks.json includes this Mac's current debug certificate SHA-256:
+  17:F8:F7:CC:D7:DC:29:88:A2:C2:BA:64:3A:7A:19:9E:9A:08:77:5B:EE:DF:F2:EB:C3:45:0F:C4:69:F5:3A:24
+- Existing assetlinks package entries and signing fingerprints are preserved.
+- Publish root .well-known/apple-app-site-association and .well-known/assetlinks.json
+  along with esp2/. A page-only push does not update the associations.
+- Install the updated debug app after publication, then tap
+  https://gapgap.github.io/esp2/ from Notes or a messaging app.
+  This opens the test screen without silently starting a local redirect.
+- iOS association discovery can be affected by Apple's CDN cache.
+- Android requires successful domain/certificate verification for an ordinary
+  browser App Link tap; explicit adb/component launches do not prove verification.
 
-The app currently pins AppsFlyer SDK 7.0.4. Its version appears in the report.
-To compare 7.0.1, change the package version deliberately in Xcode and repeat.
-All test harness code and the local-network ATS exception are Debug only.
-Release uses the original Info.plist and excludes the harness.
+In-app testing:
+- iOS: open basic_app.xcworkspace, build Debug, tap ESP.
+- Android: open kotlin/basic_app in Android Studio, build Debug, tap ESP redirect test.
+- Run Direct OneLink first. Then choose Hosted ESP with a real tracking URL,
+  or explicitly choose Local 302 for SDK isolation.
+- SDK callbacks are captured before the fruit router, with no extra app decoding.
+- Reports show SDK version, source URL, raw deep-link value, link, original_link,
+  isDeferred, and local redirect count.
+- Both apps retain the SDK version currently selected in their project.
+  Android was tested with 6.18.0; the SDK version is included in every report.
+- Test UI, HTTP listeners, and loopback cleartext allowances are Debug only.
 
-Test page:
-- Open https://gapgap.github.io/esp2/ after publishing through the repository's existing workflow.
-- Run direct control in app: gabgab://esp2/direct
-- Run fake ESP in app: gabgab://esp2/wrapped
-- These URI links launch the harness; they are not themselves ESP HTTP links.
-- The harness subsequently makes the real local HTTP redirect request.
-- In iOS simulators, the app's loopback listener shares the Mac's ports.
+Page launch controls:
+iOS:
+  gabgab://esp2/direct
+  gabgab://esp2/wrapped  (hosted)
+  gabgab://esp2/local
+Android:
+  gabgab://esp2/android/direct
+  gabgab://esp2/android/wrapped  (hosted)
+  gabgab://esp2/android/local
 
-Universal Link configuration:
-- App Associated Domain: applinks:gapgap.github.io
-- App identifier: T7KY8FMWKD.com.lapat.mytest101
-- AASA matches /esp2 and /esp2/*, preserving the existing /9hkm/* match and App Clip entry.
-- Publish .well-known/apple-app-site-association from the repository root too.
-  Publishing only esp2/ does not publish the association file.
-- AASA must be available over HTTPS with HTTP 200 and no redirect, as JSON.
-- The repository's existing _config.yml includes .well-known in the Pages build.
-- Publish first, then delete/reinstall the updated debug app to refresh association discovery.
-  Apple's CDN may still cache the previous association file.
-- Send https://gapgap.github.io/esp2/ to Notes or Messages and tap it there.
-  It should open the app and run the local fake ESP test.
-- Safari address-bar navigation opens the website; links within the same domain may stay in Safari.
-- /esp2/direct and /esp2/wrapped are additional debug launch paths.
-- The published page retains the custom-scheme launch buttons as fallbacks.
-- Warm and cold scene/AppDelegate Universal Link callbacks recognize the launch URLs.
-- The SDK's resolveDeepLinkURLs includes gapgap.github.io before initialization.
-- Actual /esp2/redirect links are forwarded unchanged to the SDK; this path
-  still requires a server-side HTTP 302 and is not implemented by GitHub Pages.
+ADB sample (app-side tests, not domain verification):
+  adb shell am start -S -n com.example.lapatgab/.MainActivity --es esp2_case direct
+  adb shell am start -S -n com.example.lapatgab/.MainActivity --es esp2_case local
+  adb shell am start -S -n com.example.lapatgab/.MainActivity --es esp2_case wrapped
+  adb shell run-as com.example.lapatgab cat files/esp2-results.txt
 
-Standalone fake ESP:
+Standalone server:
   cd /Users/gab.t/Documents/github/gapgap.github.io/esp2
   python3 server.py
   curl -I http://127.0.0.1:8787/esp2/redirect
-  open http://127.0.0.1:8787/esp2/
-
-Stop the in-app listener/app before using the standalone server on the same
-simulator/Mac port. Use --port 8788 to run a separate independent server.
-For LAN testing, run python3 server.py --host 0.0.0.0 and use the Mac's LAN IP.
-The app's built-in test intentionally uses its own localhost server instead.
-
-GitHub Pages:
-GitHub Pages cannot execute Python or serve a custom HTTP 302 from this HTML.
-No JavaScript or meta refresh is used to pretend that an HTTP redirect ran.
-Publishing index.html supplies the app-launch controls only.
-
-Limits:
-The local SDK reproduction uses a synthetic NSUserActivity for the loopback URL.
-The hosted Universal Link additionally tests OS association only after AASA is
-published and a signed app is installed. Local builds do not verify that step.
-Braze, email clients, click analytics, and a hosted HTTP redirect still need a
-real configured CTD/email test afterwards.
+  curl -I http://127.0.0.1:8787/esp2/android/redirect
+The first route returns the iOS OneLink; the second returns the Android OneLink.
+No browser JavaScript/meta refresh is used to pretend an HTTP redirect ran.
+For public hosted ESP testing, the server needs HTTPS hosting outside GitHub Pages.
