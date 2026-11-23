@@ -9,7 +9,9 @@
         "details": [
             {
                 "paths": [
-                    "/9hkm/*"
+                    "/9hkm/*",
+                    "/esp2",
+                    "/esp2/*"
                 ],
                 "appID": "T7KY8FMWKD.com.lapat.mytest101"
             }

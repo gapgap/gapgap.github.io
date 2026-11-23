@@ -25,6 +25,13 @@
   <h1>Test the ESP redirect.</h1>
   <p>Compare the same long OneLink directly and behind a real HTTP 302. Inspect the SDK callback before any app decoding.</p>
   <section>
+    <h2>Open with a Universal Link</h2>
+    <p>After publishing the site and its AASA file, reinstall the updated debug app. Send this link to yourself in Notes or Messages, then tap it to open the fake ESP test:</p>
+    <p><a href="https://gapgap.github.io/esp2/">https://gapgap.github.io/esp2/</a></p>
+    <p class="note">Tapping from Notes or Messages tests the website-to-app association. Safari may keep links to the same domain in the browser, and typing a URL into its address bar opens the website.</p>
+    <p class="note">The Universal Link launches the harness. The SDK then resolves the real HTTP 302 running locally inside the app.</p>
+  </section>
+  <section>
     <h2>Run in the debug sample app</h2>
     <p>Install the updated GabTest debug build and keep the SDK enabled. These links launch its test harness; the fake ESP runs locally inside the app.</p>
     <a class="button secondary" href="gabgab://esp2/direct">Run direct control in app</a>
@@ -44,6 +51,6 @@
 curl -I http://127.0.0.1:8787/esp2/redirect</pre>
     <p class="note">GitHub Pages serves this page as static HTML. It cannot run the redirect server. The in-app tests work without hosting that server. Stop the in-app listener before starting the standalone server on the same simulator/Mac port.</p>
   </section>
-  <p class="note">This isolates SDK ESP resolution. A full email launch test still needs a tracking domain with Associated Domains and a valid AASA file.</p>
+  <p class="note">The repository includes AASA entries for /esp2 and /esp2/* and the app includes the gapgap.github.io Associated Domain. A full hosted ESP test still needs an HTTP redirect endpoint; GitHub Pages serves static HTML.</p>
 </body>
 </html>

@@ -29,12 +29,32 @@ All test harness code and the local-network ATS exception are Debug only.
 Release uses the original Info.plist and excludes the harness.
 
 Test page:
-- Open /esp2/ after publishing through the repository's existing workflow.
+- Open https://gapgap.github.io/esp2/ after publishing through the repository's existing workflow.
 - Run direct control in app: gabgab://esp2/direct
 - Run fake ESP in app: gabgab://esp2/wrapped
 - These URI links launch the harness; they are not themselves ESP HTTP links.
 - The harness subsequently makes the real local HTTP redirect request.
 - In iOS simulators, the app's loopback listener shares the Mac's ports.
+
+Universal Link configuration:
+- App Associated Domain: applinks:gapgap.github.io
+- App identifier: T7KY8FMWKD.com.lapat.mytest101
+- AASA matches /esp2 and /esp2/*, preserving the existing /9hkm/* match and App Clip entry.
+- Publish .well-known/apple-app-site-association from the repository root too.
+  Publishing only esp2/ does not publish the association file.
+- AASA must be available over HTTPS with HTTP 200 and no redirect, as JSON.
+- The repository's existing _config.yml includes .well-known in the Pages build.
+- Publish first, then delete/reinstall the updated debug app to refresh association discovery.
+  Apple's CDN may still cache the previous association file.
+- Send https://gapgap.github.io/esp2/ to Notes or Messages and tap it there.
+  It should open the app and run the local fake ESP test.
+- Safari address-bar navigation opens the website; links within the same domain may stay in Safari.
+- /esp2/direct and /esp2/wrapped are additional debug launch paths.
+- The published page retains the custom-scheme launch buttons as fallbacks.
+- Warm and cold scene/AppDelegate Universal Link callbacks recognize the launch URLs.
+- The SDK's resolveDeepLinkURLs includes gapgap.github.io before initialization.
+- Actual /esp2/redirect links are forwarded unchanged to the SDK; this path
+  still requires a server-side HTTP 302 and is not implemented by GitHub Pages.
 
 Standalone fake ESP:
   cd /Users/gab.t/Documents/github/gapgap.github.io/esp2
@@ -53,6 +73,8 @@ No JavaScript or meta refresh is used to pretend that an HTTP redirect ran.
 Publishing index.html supplies the app-launch controls only.
 
 Limits:
-This isolates the installed-app SDK ESP path using a synthetic NSUserActivity.
-It does not validate Braze, email clients, click analytics, or OS Universal Link
-association. Those still need an actual configured CTD/email test afterwards.
+The local SDK reproduction uses a synthetic NSUserActivity for the loopback URL.
+The hosted Universal Link additionally tests OS association only after AASA is
+published and a signed app is installed. Local builds do not verify that step.
+Braze, email clients, click analytics, and a hosted HTTP redirect still need a
+real configured CTD/email test afterwards.
