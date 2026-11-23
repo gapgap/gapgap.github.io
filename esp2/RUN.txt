@@ -1,0 +1,58 @@
+ESP2: Gab iOS OneLink redirect reproduction
+
+Exact redirect Location:
+https://gabios.onelink.me/9hkm?pid=test&deep_link_value=https%3A%2F%2Fexample.com%2Ftest
+
+Quickest test (no external backend or AASA change):
+1. Build and run basic_app.xcworkspace using Debug. Leave the SDK enabled.
+2. Tap ESP in the main app's SDK controls.
+3. Tap 1. Direct OneLink; wait for CONTROL PASSED.
+4. Tap 2. Fake ESP; inspect and copy the result.
+
+The debug app starts a real TCP/HTTP listener bound to IPv4 loopback, port 8787.
+It returns HTTP 302 for /esp2/redirect with the exact Location above.
+The SDK receives http://localhost:8787/esp2/redirect via continue(userActivity),
+resolves the redirect itself, and calls didResolveDeepLink.
+The harness does not encode/decode the OneLink or deep_link_value.
+
+Confirmed reproduction requires:
+- The local server received a request and returned 302.
+- original_link identifies the local fake ESP.
+- link identifies gabios.onelink.me.
+- isDeferred is false.
+- Raw deeplinkValue equals https%3A%2F%2Fexample.com%2Ftest.
+The screen marks other incomplete/error cases INCONCLUSIVE.
+
+The app currently pins AppsFlyer SDK 7.0.4. Its version appears in the report.
+To compare 7.0.1, change the package version deliberately in Xcode and repeat.
+All test harness code and the local-network ATS exception are Debug only.
+Release uses the original Info.plist and excludes the harness.
+
+Test page:
+- Open /esp2/ after publishing through the repository's existing workflow.
+- Run direct control in app: gabgab://esp2/direct
+- Run fake ESP in app: gabgab://esp2/wrapped
+- These URI links launch the harness; they are not themselves ESP HTTP links.
+- The harness subsequently makes the real local HTTP redirect request.
+- In iOS simulators, the app's loopback listener shares the Mac's ports.
+
+Standalone fake ESP:
+  cd /Users/gab.t/Documents/github/gapgap.github.io/esp2
+  python3 server.py
+  curl -I http://127.0.0.1:8787/esp2/redirect
+  open http://127.0.0.1:8787/esp2/
+
+Stop the in-app listener/app before using the standalone server on the same
+simulator/Mac port. Use --port 8788 to run a separate independent server.
+For LAN testing, run python3 server.py --host 0.0.0.0 and use the Mac's LAN IP.
+The app's built-in test intentionally uses its own localhost server instead.
+
+GitHub Pages:
+GitHub Pages cannot execute Python or serve a custom HTTP 302 from this HTML.
+No JavaScript or meta refresh is used to pretend that an HTTP redirect ran.
+Publishing index.html supplies the app-launch controls only.
+
+Limits:
+This isolates the installed-app SDK ESP path using a synthetic NSUserActivity.
+It does not validate Braze, email clients, click analytics, or OS Universal Link
+association. Those still need an actual configured CTD/email test afterwards.

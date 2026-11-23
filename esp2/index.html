@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>Gab iOS · ESP redirect test</title>
+  <style>
+    :root { font-family: system-ui, sans-serif; color: #e8edf6; background: #101725; }
+    * { box-sizing: border-box; }
+    body { max-width: 780px; margin: 0 auto; padding: 40px 20px; line-height: 1.6; }
+    .eyebrow { color: #8bb8ff; font-weight: 700; letter-spacing: .08em; }
+    h1 { line-height: 1.15; font-size: clamp(2rem, 6vw, 3rem); }
+    section { margin: 24px 0; padding: 24px; background: #1b263a; border: 1px solid #354762; border-radius: 16px; }
+    a { color: #a8caff; }
+    .button { display: block; margin: 12px 0; padding: 14px 18px; text-decoration: none; text-align: center; font-weight: 650; background: #2965cf; color: white; border-radius: 9px; }
+    .secondary { background: #334560; }
+    code { overflow-wrap: anywhere; font-size: .95rem; }
+    pre { white-space: pre-wrap; overflow-wrap: anywhere; padding: 16px; background: #101725; border-radius: 8px; }
+    .note { color: #c3cede; }
+  </style>
+</head>
+<body>
+  <p class="eyebrow">GAB IOS / ESP2</p>
+  <h1>Test the ESP redirect.</h1>
+  <p>Compare the same long OneLink directly and behind a real HTTP 302. Inspect the SDK callback before any app decoding.</p>
+  <section>
+    <h2>Run in the debug sample app</h2>
+    <p>Install the updated GabTest debug build and keep the SDK enabled. These links launch its test harness; the fake ESP runs locally inside the app.</p>
+    <a class="button secondary" href="gabgab://esp2/direct">Run direct control in app</a>
+    <a class="button" href="gabgab://esp2/wrapped">Run fake ESP in app</a>
+    <p class="note">You can also open GabTest, tap <strong>ESP</strong>, then run both tests and copy the results.</p>
+  </section>
+  <section>
+    <h2>OneLink under test</h2>
+    <p><code>https://gabios.onelink.me/9hkm?pid=test&amp;deep_link_value=https%3A%2F%2Fexample.com%2Ftest</code></p>
+    <a class="button secondary" href="https://gabios.onelink.me/9hkm?pid=test&amp;deep_link_value=https%3A%2F%2Fexample.com%2Ftest">Open original OneLink</a>
+    <p>Expected callback: <code>https://example.com/test</code><br>If the bug reproduces: <code>https%3A%2F%2Fexample.com%2Ftest</code></p>
+  </section>
+  <section>
+    <h2>Standalone redirect server</h2>
+    <p>The companion <code>server.py</code> serves <code>/esp2/redirect</code> with HTTP 302 and the exact OneLink above in its <code>Location</code> header.</p>
+    <pre>python3 server.py
+curl -I http://127.0.0.1:8787/esp2/redirect</pre>
+    <p class="note">GitHub Pages serves this page as static HTML. It cannot run the redirect server. The in-app tests work without hosting that server. Stop the in-app listener before starting the standalone server on the same simulator/Mac port.</p>
+  </section>
+  <p class="note">This isolates SDK ESP resolution. A full email launch test still needs a tracking domain with Associated Domains and a valid AASA file.</p>
+</body>
+</html>
